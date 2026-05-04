@@ -1,0 +1,1472 @@
+{
+  "metadata": {
+    "name": "GTM Channel Taxonomy",
+    "version": "0.1.0",
+    "source": "marketing-ai-platform/backend/src/agents/registry.ts",
+    "description": "Structured catalog of agentic marketing modules. Each entry defines inputs/outputs/KPIs/tactics/dependencies for one micro-channel, suitable as a reference taxonomy for channel scoring, audit work, and channel-mix recommendations.",
+    "macro_channels": [
+      "Affiliate Marketing",
+      "Analytics",
+      "Content Marketing",
+      "Email Marketing",
+      "Paid Advertising",
+      "Partnerships",
+      "Press & PR",
+      "SEO",
+      "Social Media Marketing"
+    ],
+    "agent_count": 28,
+    "ported_at": "2026-05-04T00:19:09.568Z"
+  },
+  "agents": [
+    {
+      "agent_id": "agent_seo_onpage_001",
+      "name": "On-Page SEO Optimizer",
+      "description": "Continuously scans trends and optimizes title tags, meta descriptions, headers, and internal linking structure",
+      "agent_type": "seo",
+      "agent_category": "on_page_seo",
+      "macro_channel": "SEO",
+      "inputs": [
+        "website_content",
+        "blog_drafts",
+        "competitor_meta_tags",
+        "keyword_lists",
+        "ranking_reports"
+      ],
+      "outputs": [
+        "optimized_title_tags",
+        "meta_descriptions",
+        "header_recommendations",
+        "internal_linking_structure",
+        "keyword_gap_suggestions"
+      ],
+      "kpis": [
+        "improved_ctr",
+        "higher_organic_rankings",
+        "increased_organic_traffic"
+      ],
+      "tactics": [
+        "keyword_research",
+        "title_meta_optimization",
+        "internal_linking"
+      ],
+      "dependencies": [],
+      "default_config": {
+        "scan_frequency": "daily",
+        "keyword_density_target": 0.015,
+        "title_length_max": 60,
+        "meta_description_length_max": 160,
+        "auto_optimize": true
+      },
+      "solution_examples": [
+        "https://www.semrush.com/",
+        "https://ahrefs.com/"
+      ],
+      "simulated": true,
+      "simulation_data": {
+        "avg_execution_time_ms": 45000,
+        "success_rate": 0.94,
+        "typical_results": {
+          "pages_optimized": 15,
+          "keywords_added": 45,
+          "ctr_improvement": 0.23
+        }
+      }
+    },
+    {
+      "agent_id": "agent_seo_technical_002",
+      "name": "Technical SEO Agent",
+      "description": "Monitors site health in real-time, checks Core Web Vitals, page speed, mobile responsiveness, and schema markup",
+      "agent_type": "seo",
+      "agent_category": "technical_seo",
+      "macro_channel": "SEO",
+      "inputs": [
+        "site_performance_reports",
+        "load_times",
+        "mobile_scores",
+        "error_logs",
+        "existing_schema_code"
+      ],
+      "outputs": [
+        "automated_audit_reports",
+        "prioritized_fixes",
+        "core_web_vitals_alerts",
+        "schema_recommendations"
+      ],
+      "kpis": [
+        "reduced_crawl_errors",
+        "faster_load_times",
+        "improved_core_web_vitals"
+      ],
+      "tactics": [
+        "site_audits",
+        "page_speed_optimization",
+        "mobile_responsiveness",
+        "schema_markup"
+      ],
+      "dependencies": [],
+      "default_config": {
+        "audit_frequency": "weekly",
+        "performance_threshold": 90,
+        "mobile_friendly_required": true,
+        "auto_fix_minor_issues": true
+      },
+      "solution_examples": [
+        "https://developers.google.com/web/tools/lighthouse",
+        "https://www.screamingfrog.co.uk/seo-spider/"
+      ],
+      "simulated": true,
+      "simulation_data": {
+        "avg_execution_time_ms": 120000,
+        "success_rate": 0.91,
+        "typical_results": {
+          "issues_found": 23,
+          "issues_fixed": 18,
+          "performance_score_improvement": 15
+        }
+      }
+    },
+    {
+      "agent_id": "agent_seo_local_003",
+      "name": "Local SEO Agent",
+      "description": "Manages local listings, Google My Business optimization, and geo-targeted content creation",
+      "agent_type": "seo",
+      "agent_category": "local_seo",
+      "macro_channel": "SEO",
+      "inputs": [
+        "gmb_details",
+        "reviews",
+        "local_keyword_research",
+        "competitor_citation_data"
+      ],
+      "outputs": [
+        "gmb_improvement_recommendations",
+        "automated_citation_updates",
+        "localized_content_ideas"
+      ],
+      "kpis": [
+        "increased_local_search_rankings",
+        "higher_gmb_review_counts",
+        "more_local_traffic"
+      ],
+      "tactics": [
+        "google_my_business_optimization",
+        "local_citations",
+        "geo_targeted_content"
+      ],
+      "dependencies": [],
+      "default_config": {
+        "target_locations": [],
+        "citation_update_frequency": "monthly",
+        "review_response_automation": true
+      },
+      "solution_examples": [
+        "https://www.brightlocal.com/",
+        "https://moz.com/products/local"
+      ],
+      "simulated": true,
+      "simulation_data": {
+        "avg_execution_time_ms": 35000,
+        "success_rate": 0.96,
+        "typical_results": {
+          "citations_updated": 12,
+          "reviews_responded": 8,
+          "local_ranking_improvement": 3.2
+        }
+      }
+    },
+    {
+      "agent_id": "agent_seo_backlinks_004",
+      "name": "Backlink Builder Agent",
+      "description": "Identifies and prioritizes high-quality link opportunities through outreach, guest posting, and broken link building",
+      "agent_type": "seo",
+      "agent_category": "backlinks",
+      "macro_channel": "SEO",
+      "inputs": [
+        "competitor_backlink_profiles",
+        "existing_outreach_templates",
+        "content_ideas"
+      ],
+      "outputs": [
+        "automated_outreach_emails",
+        "follow_up_schedules",
+        "linkable_content_suggestions",
+        "quality_benchmark_reports"
+      ],
+      "kpis": [
+        "increased_high_quality_backlinks",
+        "improved_domain_authority",
+        "enhanced_referral_traffic"
+      ],
+      "tactics": [
+        "outreach_guest_posts",
+        "broken_link_building",
+        "linkable_asset_creation"
+      ],
+      "dependencies": [
+        "agent_content_blog_006"
+      ],
+      "default_config": {
+        "min_domain_authority": 40,
+        "outreach_batch_size": 25,
+        "follow_up_days": [
+          3,
+          7,
+          14
+        ],
+        "auto_send_outreach": false
+      },
+      "solution_examples": [
+        "https://ahrefs.com/blog/backlink-checker/",
+        "https://majestic.com/"
+      ],
+      "simulated": true,
+      "simulation_data": {
+        "avg_execution_time_ms": 60000,
+        "success_rate": 0.87,
+        "typical_results": {
+          "outreach_sent": 25,
+          "responses_received": 8,
+          "backlinks_acquired": 3
+        }
+      }
+    },
+    {
+      "agent_id": "agent_seo_interlinking_005",
+      "name": "Internal Linking Agent",
+      "description": "Optimizes internal linking structure for SEO boost through content silos and strategic anchor text",
+      "agent_type": "seo",
+      "agent_category": "interlinking",
+      "macro_channel": "SEO",
+      "inputs": [
+        "site_structure_analysis",
+        "anchor_text_best_practices"
+      ],
+      "outputs": [
+        "internal_link_suggestions",
+        "dynamic_link_updates"
+      ],
+      "kpis": [
+        "improved_page_authority_distribution",
+        "better_crawlability",
+        "increased_time_on_site"
+      ],
+      "tactics": [
+        "content_silos",
+        "strategic_anchor_text_optimization"
+      ],
+      "dependencies": [
+        "agent_seo_onpage_001"
+      ],
+      "default_config": {
+        "max_links_per_page": 100,
+        "preferred_anchor_text_style": "descriptive",
+        "auto_apply_links": true
+      },
+      "solution_examples": [
+        "https://yoast.com/wordpress/plugins/seo/",
+        "https://rankmath.com/"
+      ],
+      "simulated": true,
+      "simulation_data": {
+        "avg_execution_time_ms": 30000,
+        "success_rate": 0.95,
+        "typical_results": {
+          "links_added": 45,
+          "orphan_pages_connected": 7,
+          "silo_structure_score": 8.5
+        }
+      }
+    },
+    {
+      "agent_id": "agent_content_blog_006",
+      "name": "Blog Post Agent",
+      "description": "Recommends topic refresh, content repurposing, and SEO optimization for evergreen blog content",
+      "agent_type": "content",
+      "agent_category": "blog_posts",
+      "macro_channel": "Content Marketing",
+      "inputs": [
+        "draft_blog_posts",
+        "historical_engagement_metrics",
+        "reader_comments_feedback"
+      ],
+      "outputs": [
+        "topic_suggestions",
+        "repurposing_ideas",
+        "seo_readability_optimization",
+        "content_refresh_plans"
+      ],
+      "kpis": [
+        "higher_avg_time_on_page",
+        "more_social_shares",
+        "increased_organic_traffic"
+      ],
+      "tactics": [
+        "evergreen_content_creation",
+        "content_repurposing",
+        "seo_optimization"
+      ],
+      "dependencies": [
+        "agent_seo_onpage_001"
+      ],
+      "default_config": {
+        "target_word_count": 1500,
+        "readability_score_min": 60,
+        "publish_frequency": "weekly",
+        "content_refresh_interval_days": 180
+      },
+      "solution_examples": [
+        "https://www.hubspot.com/",
+        "https://coschedule.com/"
+      ],
+      "simulated": true,
+      "simulation_data": {
+        "avg_execution_time_ms": 90000,
+        "success_rate": 0.92,
+        "typical_results": {
+          "posts_analyzed": 10,
+          "updates_recommended": 6,
+          "avg_engagement_increase": 0.34
+        }
+      }
+    },
+    {
+      "agent_id": "agent_content_whitepaper_007",
+      "name": "Whitepaper/eBook Agent",
+      "description": "Automates research data aggregation and design template generation for gated lead magnets",
+      "agent_type": "content",
+      "agent_category": "whitepapers_ebooks",
+      "macro_channel": "Content Marketing",
+      "inputs": [
+        "research_data_reports",
+        "draft_outlines",
+        "design_preferences",
+        "user_feedback_downloads"
+      ],
+      "outputs": [
+        "structured_outlines",
+        "design_template_recommendations",
+        "lead_capture_integration_suggestions"
+      ],
+      "kpis": [
+        "number_of_downloads",
+        "lead_conversion_rate",
+        "engagement_time"
+      ],
+      "tactics": [
+        "in_depth_research",
+        "professional_design",
+        "gated_download_setup"
+      ],
+      "dependencies": [],
+      "default_config": {
+        "target_page_count": 15,
+        "design_style": "professional",
+        "lead_form_fields": [
+          "email",
+          "company",
+          "job_title"
+        ]
+      },
+      "solution_examples": [
+        "https://www.canva.com/",
+        "https://spark.adobe.com/"
+      ],
+      "simulated": true,
+      "simulation_data": {
+        "avg_execution_time_ms": 180000,
+        "success_rate": 0.89,
+        "typical_results": {
+          "whitepapers_created": 1,
+          "downloads": 145,
+          "lead_conversion": 0.23
+        }
+      }
+    },
+    {
+      "agent_id": "agent_content_infographic_008",
+      "name": "Infographic Agent",
+      "description": "Creates consistent infographic templates based on data trends with brand guidelines",
+      "agent_type": "content",
+      "agent_category": "infographics",
+      "macro_channel": "Content Marketing",
+      "inputs": [
+        "raw_data_sets",
+        "research_statistics",
+        "brand_style_guides",
+        "existing_infographic_examples"
+      ],
+      "outputs": [
+        "automated_infographic_designs",
+        "brand_consistent_templates",
+        "embed_code_generation"
+      ],
+      "kpis": [
+        "social_shares_re_embeds",
+        "backlinks_generated",
+        "viewer_engagement_time"
+      ],
+      "tactics": [
+        "data_visualization",
+        "branding_consistency",
+        "embeddable_content_creation"
+      ],
+      "dependencies": [],
+      "default_config": {
+        "design_tool": "canva_api",
+        "color_palette": "brand_colors",
+        "share_formats": [
+          "png",
+          "svg",
+          "pdf"
+        ]
+      },
+      "solution_examples": [
+        "https://piktochart.com/",
+        "https://venngage.com/"
+      ],
+      "simulated": true,
+      "simulation_data": {
+        "avg_execution_time_ms": 75000,
+        "success_rate": 0.93,
+        "typical_results": {
+          "infographics_created": 2,
+          "social_shares": 234,
+          "backlinks": 8
+        }
+      }
+    },
+    {
+      "agent_id": "agent_content_video_009",
+      "name": "Video Content Agent",
+      "description": "Optimizes video SEO and automates captioning/transcription for multi-platform distribution",
+      "agent_type": "content",
+      "agent_category": "videos",
+      "macro_channel": "Content Marketing",
+      "inputs": [
+        "raw_video_footage",
+        "script_drafts",
+        "competitor_video_analytics"
+      ],
+      "outputs": [
+        "optimized_video_metadata",
+        "auto_generated_transcripts",
+        "captions",
+        "video_scheduling_recommendations"
+      ],
+      "kpis": [
+        "increased_watch_time",
+        "higher_engagement",
+        "improved_video_ranking"
+      ],
+      "tactics": [
+        "script_storyboard_production",
+        "metadata_optimization",
+        "transcripts_captioning"
+      ],
+      "dependencies": [],
+      "default_config": {
+        "target_platforms": [
+          "youtube",
+          "linkedin",
+          "facebook"
+        ],
+        "caption_language": "en",
+        "thumbnail_auto_generate": true
+      },
+      "solution_examples": [
+        "https://studio.youtube.com/",
+        "https://www.rev.com/"
+      ],
+      "simulated": true,
+      "simulation_data": {
+        "avg_execution_time_ms": 240000,
+        "success_rate": 0.88,
+        "typical_results": {
+          "videos_processed": 3,
+          "avg_watch_time_increase": 0.28,
+          "engagement_rate": 0.12
+        }
+      }
+    },
+    {
+      "agent_id": "agent_content_podcast_010",
+      "name": "Podcast Agent",
+      "description": "Manages episode calendar, guest outreach, and automated transcriptions for podcast distribution",
+      "agent_type": "content",
+      "agent_category": "podcasts",
+      "macro_channel": "Content Marketing",
+      "inputs": [
+        "topic_ideas",
+        "guest_lists",
+        "scheduling_preferences",
+        "listener_feedback"
+      ],
+      "outputs": [
+        "episode_outlines",
+        "recording_schedules",
+        "automated_transcriptions",
+        "multi_platform_distribution"
+      ],
+      "kpis": [
+        "number_downloads_streams",
+        "listener_retention_rate",
+        "engagement_reviews_mentions"
+      ],
+      "tactics": [
+        "episode_planning",
+        "guest_scheduling",
+        "transcription_distribution"
+      ],
+      "dependencies": [],
+      "default_config": {
+        "episode_frequency": "weekly",
+        "episode_length_target": 45,
+        "distribution_platforms": [
+          "spotify",
+          "apple_podcasts",
+          "google_podcasts"
+        ]
+      },
+      "solution_examples": [
+        "https://anchor.fm/",
+        "https://www.descript.com/"
+      ],
+      "simulated": true,
+      "simulation_data": {
+        "avg_execution_time_ms": 150000,
+        "success_rate": 0.91,
+        "typical_results": {
+          "episodes_produced": 1,
+          "downloads": 892,
+          "retention_rate": 0.67
+        }
+      }
+    },
+    {
+      "agent_id": "agent_social_organic_011",
+      "name": "Organic Social Scheduler",
+      "description": "Optimizes post timing and community interaction based on real-time engagement data",
+      "agent_type": "social",
+      "agent_category": "organic_social",
+      "macro_channel": "Social Media Marketing",
+      "inputs": [
+        "content_ideas_images_videos",
+        "social_media_calendar",
+        "audience_sentiment_engagement_data"
+      ],
+      "outputs": [
+        "scheduled_posts",
+        "real_time_engagement_alerts",
+        "content_calendars"
+      ],
+      "kpis": [
+        "engagement_rate",
+        "follower_growth",
+        "reach_impressions"
+      ],
+      "tactics": [
+        "regular_posting",
+        "community_engagement",
+        "stories_live_sessions"
+      ],
+      "dependencies": [],
+      "default_config": {
+        "platforms": [
+          "facebook",
+          "instagram",
+          "twitter",
+          "linkedin"
+        ],
+        "posts_per_day": 3,
+        "optimal_times": "auto_detect",
+        "engagement_response_time_max": 60
+      },
+      "solution_examples": [
+        "https://buffer.com/",
+        "https://hootsuite.com/"
+      ],
+      "simulated": true,
+      "simulation_data": {
+        "avg_execution_time_ms": 20000,
+        "success_rate": 0.97,
+        "typical_results": {
+          "posts_scheduled": 21,
+          "engagement_rate": 0.045,
+          "follower_growth": 234
+        }
+      }
+    },
+    {
+      "agent_id": "agent_social_paid_012",
+      "name": "Paid Social Optimizer",
+      "description": "Continuously tests and adjusts ad creatives and audience segmentation for maximum ROI",
+      "agent_type": "social",
+      "agent_category": "paid_social",
+      "macro_channel": "Social Media Marketing",
+      "inputs": [
+        "ad_creatives_copy",
+        "audience_demographics_interests",
+        "past_campaign_performance"
+      ],
+      "outputs": [
+        "ab_tested_creatives",
+        "real_time_adjustments",
+        "performance_reports"
+      ],
+      "kpis": [
+        "roas",
+        "ctr_conversion_rate",
+        "cost_per_acquisition"
+      ],
+      "tactics": [
+        "targeted_ad_campaigns",
+        "creative_split_testing",
+        "audience_segmentation"
+      ],
+      "dependencies": [],
+      "default_config": {
+        "platforms": [
+          "facebook",
+          "instagram",
+          "linkedin"
+        ],
+        "daily_budget": 100,
+        "ab_test_duration_days": 7,
+        "auto_optimize": true
+      },
+      "solution_examples": [
+        "https://www.facebook.com/business/tools/ads-manager",
+        "https://business.linkedin.com/marketing-solutions/ads"
+      ],
+      "simulated": true,
+      "simulation_data": {
+        "avg_execution_time_ms": 45000,
+        "success_rate": 0.89,
+        "typical_results": {
+          "campaigns_optimized": 4,
+          "roas": 3.2,
+          "cpa_reduction": 0.18
+        }
+      }
+    },
+    {
+      "agent_id": "agent_social_influencer_013",
+      "name": "Influencer Outreach Agent",
+      "description": "Matches brands with influencers and tracks campaign performance automatically",
+      "agent_type": "social",
+      "agent_category": "influencer_marketing",
+      "macro_channel": "Social Media Marketing",
+      "inputs": [
+        "influencer_profiles_engagement_data",
+        "audience_alignment_criteria",
+        "past_campaign_roi"
+      ],
+      "outputs": [
+        "automated_outreach",
+        "performance_tracking",
+        "contract_management"
+      ],
+      "kpis": [
+        "engagement_on_influencer_posts",
+        "conversion_rate_campaigns",
+        "cost_per_acquisition_efforts"
+      ],
+      "tactics": [
+        "identify_partner_influencers",
+        "sponsored_content_campaigns"
+      ],
+      "dependencies": [],
+      "default_config": {
+        "min_follower_count": 10000,
+        "engagement_rate_min": 0.03,
+        "budget_per_influencer": 500
+      },
+      "solution_examples": [
+        "https://www.upfluence.com/",
+        "https://aspireiq.com/"
+      ],
+      "simulated": true,
+      "simulation_data": {
+        "avg_execution_time_ms": 60000,
+        "success_rate": 0.85,
+        "typical_results": {
+          "influencers_contacted": 15,
+          "partnerships_secured": 3,
+          "campaign_reach": 125000
+        }
+      }
+    },
+    {
+      "agent_id": "agent_ads_search_014",
+      "name": "Search Engine Ads Agent",
+      "description": "Manages bidding, ad copy iterations, and landing page alignment for Google/Bing ads",
+      "agent_type": "paid_ads",
+      "agent_category": "search_engine_ads",
+      "macro_channel": "Paid Advertising",
+      "inputs": [
+        "keyword_data_competitor_ads",
+        "historical_bid_performance",
+        "landing_page_conversion_metrics"
+      ],
+      "outputs": [
+        "optimized_ad_copy",
+        "automated_bid_adjustments",
+        "landing_page_suggestions"
+      ],
+      "kpis": [
+        "ctr_conversion_rate",
+        "cost_per_click",
+        "overall_ad_roi"
+      ],
+      "tactics": [
+        "keyword_bidding",
+        "ad_copy_optimization",
+        "landing_page_integration"
+      ],
+      "dependencies": [],
+      "default_config": {
+        "platforms": [
+          "google_ads",
+          "bing_ads"
+        ],
+        "bid_strategy": "target_cpa",
+        "target_cpa": 50,
+        "ad_rotation": "optimize"
+      },
+      "solution_examples": [
+        "https://ads.google.com/",
+        "https://www.wordstream.com/"
+      ],
+      "simulated": true,
+      "simulation_data": {
+        "avg_execution_time_ms": 40000,
+        "success_rate": 0.91,
+        "typical_results": {
+          "campaigns_optimized": 6,
+          "ctr_improvement": 0.21,
+          "cpa_reduction": 0.15
+        }
+      }
+    },
+    {
+      "agent_id": "agent_ads_display_015",
+      "name": "Display Ads Agent",
+      "description": "Generates and tests banner ads using contextual data for programmatic buying",
+      "agent_type": "paid_ads",
+      "agent_category": "display_ads",
+      "macro_channel": "Paid Advertising",
+      "inputs": [
+        "creative_briefs_assets",
+        "audience_segmentation_data",
+        "competitor_display_examples"
+      ],
+      "outputs": [
+        "automated_banner_templates",
+        "contextual_placement_recommendations",
+        "ab_test_schedules"
+      ],
+      "kpis": [
+        "viewability",
+        "ctr_conversion_rate",
+        "engagement_metrics"
+      ],
+      "tactics": [
+        "banner_rich_media_creation",
+        "contextual_targeting",
+        "programmatic_buying"
+      ],
+      "dependencies": [],
+      "default_config": {
+        "banner_sizes": [
+          "728x90",
+          "300x250",
+          "160x600"
+        ],
+        "programmatic_platform": "google_display_network",
+        "daily_budget": 200
+      },
+      "solution_examples": [
+        "https://www.adroll.com/",
+        "https://www.criteo.com/"
+      ],
+      "simulated": true,
+      "simulation_data": {
+        "avg_execution_time_ms": 50000,
+        "success_rate": 0.87,
+        "typical_results": {
+          "banners_created": 12,
+          "impressions": 145000,
+          "ctr": 0.008
+        }
+      }
+    },
+    {
+      "agent_id": "agent_ads_video_016",
+      "name": "Video Ads Agent",
+      "description": "Optimizes video ad placements and tracks engagement across devices and platforms",
+      "agent_type": "paid_ads",
+      "agent_category": "video_ads",
+      "macro_channel": "Paid Advertising",
+      "inputs": [
+        "video_footage_scripts",
+        "platform_guidelines",
+        "past_ad_performance"
+      ],
+      "outputs": [
+        "edited_optimized_video_versions",
+        "metadata_scheduling",
+        "performance_tracking"
+      ],
+      "kpis": [
+        "engagement_views_likes_shares",
+        "conversion_rate",
+        "cost_per_view"
+      ],
+      "tactics": [
+        "pre_roll_mid_roll_production",
+        "mobile_desktop_optimization"
+      ],
+      "dependencies": [
+        "agent_content_video_009"
+      ],
+      "default_config": {
+        "platforms": [
+          "youtube",
+          "facebook",
+          "instagram"
+        ],
+        "video_length_max": 30,
+        "target_cpv": 0.1
+      },
+      "solution_examples": [
+        "https://ads.youtube.com/",
+        "https://www.vungle.com/"
+      ],
+      "simulated": true,
+      "simulation_data": {
+        "avg_execution_time_ms": 120000,
+        "success_rate": 0.86,
+        "typical_results": {
+          "video_ads_deployed": 4,
+          "views": 45000,
+          "engagement_rate": 0.15
+        }
+      }
+    },
+    {
+      "agent_id": "agent_ads_retargeting_017",
+      "name": "Retargeting Agent",
+      "description": "Segments and personalizes ads based on user behavior patterns with frequency management",
+      "agent_type": "paid_ads",
+      "agent_category": "retargeting",
+      "macro_channel": "Paid Advertising",
+      "inputs": [
+        "website_visitor_data_cookies",
+        "past_purchase_history",
+        "user_behavior_signals"
+      ],
+      "outputs": [
+        "segmented_retargeting_lists",
+        "personalized_ad_messages",
+        "frequency_capping_suggestions"
+      ],
+      "kpis": [
+        "conversion_rate_retargeting",
+        "roi_campaigns",
+        "ctr_improvements"
+      ],
+      "tactics": [
+        "dynamic_retargeting",
+        "frequency_capping",
+        "personalized_messaging"
+      ],
+      "dependencies": [],
+      "default_config": {
+        "lookback_window_days": 30,
+        "frequency_cap_per_day": 3,
+        "segment_by": [
+          "page_visited",
+          "cart_abandonment",
+          "product_viewed"
+        ]
+      },
+      "solution_examples": [
+        "https://www.criteo.com/",
+        "https://www.adroll.com/"
+      ],
+      "simulated": true,
+      "simulation_data": {
+        "avg_execution_time_ms": 35000,
+        "success_rate": 0.93,
+        "typical_results": {
+          "audiences_segmented": 8,
+          "conversion_rate": 0.042,
+          "roas": 4.1
+        }
+      }
+    },
+    {
+      "agent_id": "agent_email_drip_018",
+      "name": "Email Drip Campaign Agent",
+      "description": "Automates email sequences with behavior triggers and personalization",
+      "agent_type": "email",
+      "agent_category": "drip_campaigns",
+      "macro_channel": "Email Marketing",
+      "inputs": [
+        "customer_behavior_data",
+        "email_templates",
+        "trigger_rules"
+      ],
+      "outputs": [
+        "automated_email_sequences",
+        "behavior_triggered_sends",
+        "personalized_content"
+      ],
+      "kpis": [
+        "email_open_rate",
+        "click_through_rate",
+        "conversion_rate"
+      ],
+      "tactics": [
+        "automated_sequences",
+        "behavior_triggers",
+        "personalization"
+      ],
+      "dependencies": [],
+      "default_config": {
+        "sequence_length": 5,
+        "day_delays": [
+          0,
+          3,
+          7,
+          14,
+          21
+        ],
+        "personalization_fields": [
+          "first_name",
+          "company",
+          "industry"
+        ]
+      },
+      "solution_examples": [
+        "https://mailchimp.com/",
+        "https://www.activecampaign.com/"
+      ],
+      "simulated": true,
+      "simulation_data": {
+        "avg_execution_time_ms": 25000,
+        "success_rate": 0.94,
+        "typical_results": {
+          "emails_sent": 2500,
+          "open_rate": 0.28,
+          "click_rate": 0.045,
+          "conversions": 67
+        }
+      }
+    },
+    {
+      "agent_id": "agent_email_newsletter_019",
+      "name": "Newsletter Agent",
+      "description": "Curates content and optimizes send times for maximum engagement",
+      "agent_type": "email",
+      "agent_category": "newsletters",
+      "macro_channel": "Email Marketing",
+      "inputs": [
+        "content_library",
+        "subscriber_engagement_history",
+        "send_time_analytics"
+      ],
+      "outputs": [
+        "curated_newsletters",
+        "optimal_send_times",
+        "subject_line_variations"
+      ],
+      "kpis": [
+        "open_rate",
+        "click_rate",
+        "subscriber_growth"
+      ],
+      "tactics": [
+        "content_curation",
+        "send_time_optimization",
+        "subject_line_testing"
+      ],
+      "dependencies": [
+        "agent_content_blog_006"
+      ],
+      "default_config": {
+        "frequency": "weekly",
+        "content_blocks": 5,
+        "subject_line_ab_test": true
+      },
+      "solution_examples": [
+        "https://mailchimp.com/",
+        "https://www.constantcontact.com/"
+      ],
+      "simulated": true,
+      "simulation_data": {
+        "avg_execution_time_ms": 30000,
+        "success_rate": 0.96,
+        "typical_results": {
+          "newsletters_sent": 4,
+          "avg_open_rate": 0.32,
+          "avg_click_rate": 0.052
+        }
+      }
+    },
+    {
+      "agent_id": "agent_email_transactional_020",
+      "name": "Transactional Email Agent",
+      "description": "Manages order confirmations, receipts, and automated notifications",
+      "agent_type": "email",
+      "agent_category": "transactional",
+      "macro_channel": "Email Marketing",
+      "inputs": [
+        "transaction_triggers",
+        "customer_data",
+        "email_templates"
+      ],
+      "outputs": [
+        "order_confirmations",
+        "shipping_notifications",
+        "receipts"
+      ],
+      "kpis": [
+        "delivery_rate",
+        "open_rate",
+        "customer_satisfaction"
+      ],
+      "tactics": [
+        "automated_confirmations",
+        "real_time_triggers",
+        "personalization"
+      ],
+      "dependencies": [],
+      "default_config": {
+        "send_immediately": true,
+        "include_tracking": true,
+        "cross_sell_products": true
+      },
+      "solution_examples": [
+        "https://sendgrid.com/",
+        "https://www.mailgun.com/"
+      ],
+      "simulated": true,
+      "simulation_data": {
+        "avg_execution_time_ms": 5000,
+        "success_rate": 0.99,
+        "typical_results": {
+          "emails_sent": 1250,
+          "delivery_rate": 0.998,
+          "open_rate": 0.68
+        }
+      }
+    },
+    {
+      "agent_id": "agent_pr_press_021",
+      "name": "Press Release Agent",
+      "description": "Generates and distributes press releases with media pickup tracking",
+      "agent_type": "pr",
+      "agent_category": "press_releases",
+      "macro_channel": "Press & PR",
+      "inputs": [
+        "company_news_updates",
+        "competitor_press_examples",
+        "media_contact_lists"
+      ],
+      "outputs": [
+        "auto_generated_drafts",
+        "distribution_scheduling",
+        "media_pickup_alerts"
+      ],
+      "kpis": [
+        "number_media_pickups",
+        "website_traffic_releases",
+        "sentiment_reach"
+      ],
+      "tactics": [
+        "newsworthy_content_creation",
+        "distribution_pr_networks"
+      ],
+      "dependencies": [],
+      "default_config": {
+        "distribution_networks": [
+          "prnewswire",
+          "businesswire"
+        ],
+        "auto_distribute": false,
+        "embargo_hours": 0
+      },
+      "solution_examples": [
+        "https://www.prnewswire.com/",
+        "https://www.businesswire.com/"
+      ],
+      "simulated": true,
+      "simulation_data": {
+        "avg_execution_time_ms": 45000,
+        "success_rate": 0.88,
+        "typical_results": {
+          "releases_distributed": 2,
+          "media_pickups": 8,
+          "website_traffic_increase": 1250
+        }
+      }
+    },
+    {
+      "agent_id": "agent_pr_journalist_022",
+      "name": "Journalist Outreach Agent",
+      "description": "Automates personalized pitch emails and tracks media relationship management",
+      "agent_type": "pr",
+      "agent_category": "journalist_outreach",
+      "macro_channel": "Press & PR",
+      "inputs": [
+        "journalist_databases",
+        "brand_story_media_kits",
+        "past_successful_pitches"
+      ],
+      "outputs": [
+        "personalized_pitch_emails",
+        "follow_up_scheduling",
+        "media_kit_updates"
+      ],
+      "kpis": [
+        "response_rate",
+        "earned_media_mentions",
+        "quality_coverage"
+      ],
+      "tactics": [
+        "personalized_pitches",
+        "media_kit_preparation"
+      ],
+      "dependencies": [],
+      "default_config": {
+        "pitch_personalization_level": "high",
+        "follow_up_days": [
+          3,
+          7
+        ],
+        "max_pitches_per_day": 20
+      },
+      "solution_examples": [
+        "https://www.cision.com/",
+        "https://www.muckrack.com/"
+      ],
+      "simulated": true,
+      "simulation_data": {
+        "avg_execution_time_ms": 40000,
+        "success_rate": 0.82,
+        "typical_results": {
+          "pitches_sent": 20,
+          "responses": 6,
+          "media_placements": 2
+        }
+      }
+    },
+    {
+      "agent_id": "agent_affiliate_recruitment_023",
+      "name": "Affiliate Recruitment Agent",
+      "description": "Identifies and onboards affiliate partners with automated outreach",
+      "agent_type": "affiliate",
+      "agent_category": "recruitment",
+      "macro_channel": "Affiliate Marketing",
+      "inputs": [
+        "affiliate_network_data",
+        "performance_criteria",
+        "commission_structure"
+      ],
+      "outputs": [
+        "qualified_affiliate_list",
+        "automated_onboarding",
+        "contract_templates"
+      ],
+      "kpis": [
+        "affiliates_recruited",
+        "activation_rate",
+        "time_to_first_sale"
+      ],
+      "tactics": [
+        "partner_identification",
+        "automated_outreach",
+        "onboarding_automation"
+      ],
+      "dependencies": [],
+      "default_config": {
+        "min_traffic_requirement": 10000,
+        "commission_percentage": 15,
+        "cookie_duration_days": 30
+      },
+      "solution_examples": [
+        "https://www.impact.com/",
+        "https://www.shareasale.com/"
+      ],
+      "simulated": true,
+      "simulation_data": {
+        "avg_execution_time_ms": 55000,
+        "success_rate": 0.76,
+        "typical_results": {
+          "affiliates_contacted": 50,
+          "sign_ups": 12,
+          "active_affiliates": 7
+        }
+      }
+    },
+    {
+      "agent_id": "agent_affiliate_performance_024",
+      "name": "Affiliate Performance Agent",
+      "description": "Tracks, optimizes, and manages affiliate payout automation",
+      "agent_type": "affiliate",
+      "agent_category": "performance",
+      "macro_channel": "Affiliate Marketing",
+      "inputs": [
+        "affiliate_sales_data",
+        "traffic_quality_metrics",
+        "fraud_detection_signals"
+      ],
+      "outputs": [
+        "performance_dashboards",
+        "optimization_recommendations",
+        "automated_payouts"
+      ],
+      "kpis": [
+        "affiliate_revenue",
+        "roi_per_affiliate",
+        "fraud_prevention_rate"
+      ],
+      "tactics": [
+        "performance_tracking",
+        "optimization",
+        "payout_management"
+      ],
+      "dependencies": [
+        "agent_affiliate_recruitment_023"
+      ],
+      "default_config": {
+        "payout_frequency": "monthly",
+        "minimum_payout": 100,
+        "fraud_check_enabled": true
+      },
+      "solution_examples": [
+        "https://www.impact.com/",
+        "https://www.cj.com/"
+      ],
+      "simulated": true,
+      "simulation_data": {
+        "avg_execution_time_ms": 30000,
+        "success_rate": 0.95,
+        "typical_results": {
+          "affiliate_revenue": 12500,
+          "avg_roi": 3.8,
+          "fraud_prevented": 450
+        }
+      }
+    },
+    {
+      "agent_id": "agent_partnership_comarketing_025",
+      "name": "Co-Marketing Campaign Agent",
+      "description": "Manages joint campaigns and content collaboration with partners",
+      "agent_type": "partnerships",
+      "agent_category": "co_marketing",
+      "macro_channel": "Partnerships",
+      "inputs": [
+        "partner_brand_guidelines",
+        "shared_audience_data",
+        "campaign_objectives"
+      ],
+      "outputs": [
+        "joint_campaign_plans",
+        "collaborative_content",
+        "performance_tracking"
+      ],
+      "kpis": [
+        "combined_reach",
+        "lead_sharing_success",
+        "partnership_roi"
+      ],
+      "tactics": [
+        "joint_campaigns",
+        "content_collaboration",
+        "audience_sharing"
+      ],
+      "dependencies": [],
+      "default_config": {
+        "lead_split_percentage": 50,
+        "content_approval_required": true,
+        "campaign_duration_weeks": 4
+      },
+      "solution_examples": [
+        "https://www.crossbeam.com/",
+        "https://www.reveal.co/"
+      ],
+      "simulated": true,
+      "simulation_data": {
+        "avg_execution_time_ms": 80000,
+        "success_rate": 0.84,
+        "typical_results": {
+          "campaigns_launched": 1,
+          "combined_leads": 450,
+          "partnership_roi": 2.4
+        }
+      }
+    },
+    {
+      "agent_id": "agent_partnership_strategic_026",
+      "name": "Strategic Partnership Agent",
+      "description": "Identifies integration opportunities and manages partner relationships",
+      "agent_type": "partnerships",
+      "agent_category": "strategic",
+      "macro_channel": "Partnerships",
+      "inputs": [
+        "company_objectives",
+        "market_analysis",
+        "integration_capabilities"
+      ],
+      "outputs": [
+        "partnership_opportunities",
+        "relationship_tracking",
+        "integration_roadmaps"
+      ],
+      "kpis": [
+        "partnerships_established",
+        "integration_success_rate",
+        "revenue_attribution"
+      ],
+      "tactics": [
+        "opportunity_identification",
+        "relationship_management",
+        "integration_coordination"
+      ],
+      "dependencies": [],
+      "default_config": {
+        "partner_tiers": [
+          "platinum",
+          "gold",
+          "silver"
+        ],
+        "integration_types": [
+          "api",
+          "native",
+          "marketplace"
+        ],
+        "relationship_review_frequency": "quarterly"
+      },
+      "solution_examples": [
+        "https://www.partnerstack.com/",
+        "https://www.impact.com/partnership-cloud/"
+      ],
+      "simulated": true,
+      "simulation_data": {
+        "avg_execution_time_ms": 120000,
+        "success_rate": 0.79,
+        "typical_results": {
+          "opportunities_identified": 15,
+          "partnerships_established": 3,
+          "integrations_completed": 1
+        }
+      }
+    },
+    {
+      "agent_id": "agent_analytics_attribution_027",
+      "name": "Cross-Channel Attribution Agent",
+      "description": "Calculates multi-touch attribution and ROI across all marketing channels",
+      "agent_type": "analytics",
+      "agent_category": "attribution",
+      "macro_channel": "Analytics",
+      "inputs": [
+        "customer_journey_data",
+        "channel_performance_metrics",
+        "conversion_data"
+      ],
+      "outputs": [
+        "attribution_models",
+        "roi_calculations",
+        "channel_effectiveness_reports"
+      ],
+      "kpis": [
+        "attribution_accuracy",
+        "channel_roi",
+        "customer_lifetime_value"
+      ],
+      "tactics": [
+        "multi_touch_attribution",
+        "roi_calculation",
+        "journey_analysis"
+      ],
+      "dependencies": [],
+      "default_config": {
+        "attribution_model": "time_decay",
+        "lookback_window_days": 30,
+        "channel_weights": "auto"
+      },
+      "solution_examples": [
+        "https://www.google.com/analytics/",
+        "https://www.bizible.com/"
+      ],
+      "simulated": true,
+      "simulation_data": {
+        "avg_execution_time_ms": 90000,
+        "success_rate": 0.92,
+        "typical_results": {
+          "journeys_analyzed": 5000,
+          "roi_by_channel": {
+            "paid_search": 3.2,
+            "organic_social": 2.8,
+            "email": 4.1,
+            "content": 2.3
+          }
+        }
+      }
+    },
+    {
+      "agent_id": "agent_analytics_predictive_028",
+      "name": "Predictive Analytics Agent",
+      "description": "Forecasts trends, detects anomalies, and provides data-driven recommendations",
+      "agent_type": "analytics",
+      "agent_category": "predictive",
+      "macro_channel": "Analytics",
+      "inputs": [
+        "historical_performance_data",
+        "market_trends",
+        "seasonal_patterns"
+      ],
+      "outputs": [
+        "performance_forecasts",
+        "anomaly_alerts",
+        "optimization_recommendations"
+      ],
+      "kpis": [
+        "forecast_accuracy",
+        "anomalies_detected",
+        "recommendation_adoption_rate"
+      ],
+      "tactics": [
+        "trend_forecasting",
+        "anomaly_detection",
+        "predictive_recommendations"
+      ],
+      "dependencies": [
+        "agent_analytics_attribution_027"
+      ],
+      "default_config": {
+        "forecast_horizon_days": 90,
+        "confidence_interval": 0.95,
+        "anomaly_sensitivity": "medium"
+      },
+      "solution_examples": [
+        "https://www.tableau.com/",
+        "https://www.looker.com/"
+      ],
+      "simulated": true,
+      "simulation_data": {
+        "avg_execution_time_ms": 180000,
+        "success_rate": 0.88,
+        "typical_results": {
+          "forecasts_generated": 12,
+          "forecast_accuracy": 0.87,
+          "anomalies_detected": 3,
+          "recommendations": 8
+        }
+      }
+    }
+  ]
+}
