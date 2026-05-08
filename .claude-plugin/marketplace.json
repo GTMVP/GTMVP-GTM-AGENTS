@@ -1,0 +1,47 @@
+{
+  "name": "gtmvp-gtm-agents",
+  "owner": {
+    "name": "Steve Kaplan",
+    "url": "https://stevekaplan.ai"
+  },
+  "metadata": {
+    "description": "GTM intelligence agents for B2B SaaS — competitor mapping, positioning, channels, attribution, conversion, and brand strategy.",
+    "version": "1.0.0"
+  },
+  "plugins": [
+    {
+      "name": "gtmvp-gtm-agents",
+      "source": "./",
+      "description": "18 specialist GTM agents + 6 framework skills + 5 orchestration slash commands + 28-channel taxonomy. Invokable via the Task tool or composed through slash commands like /gtm-audit, /competitor-map, /channel-score, /positioning-pass, /porters-scan.",
+      "version": "1.0.0",
+      "author": {
+        "name": "Steve Kaplan",
+        "url": "https://stevekaplan.ai"
+      },
+      "homepage": "https://github.com/GTMVP/GTMVP-GTM-AGENTS",
+      "repository": "https://github.com/GTMVP/GTMVP-GTM-AGENTS",
+      "license": "MIT",
+      "category": "marketing",
+      "tags": [
+        "gtm",
+        "marketing",
+        "b2b-saas",
+        "competitor-intelligence",
+        "positioning",
+        "attribution",
+        "agents",
+        "claude-code"
+      ],
+      "keywords": [
+        "gtm",
+        "marketing",
+        "b2b-saas",
+        "competitor-intelligence",
+        "positioning",
+        "attribution",
+        "agents",
+        "claude-code"
+      ]
+    }
+  ]
+}
