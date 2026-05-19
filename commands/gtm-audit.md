@@ -50,16 +50,40 @@ Apply the `porters-five-forces` skill to the brand's sub-vertical. Produce the f
 
 Apply the `marketing-channel-scoring` skill against the 28-channel taxonomy in `data/channel-taxonomy.json`. Produce per-channel scores, the rollout plan (now / next quarter / year two), and the portfolio check.
 
+### Stage 7 — MaxSAT claim synthesis (recommendation filter)
+
+After all six stages complete and **before** writing the synthesis document, run the MaxSAT synthesis step. This replaces naïve recommendation concatenation with a provably-optimal consistent subset.
+
+**Claim collection.** Scan every stage's `recommendations[]` array. Accept a claim only if all four MaxSAT fields are present: `claimId`, `atomicClaim`, `weight` (1–10 int), `confidence` (0.0–1.0 float). Skip incomplete recommendations — do not default missing fields. Collect `incompatibleWithClaimIds` edges and build `incompatible_pairs` by mapping claim IDs to their 0-based index in the collected list.
+
+**If fewer than 3 claims pass collection:** skip the solver and fall back to prose synthesis. Note "insufficient MaxSAT-ready claims for solver synthesis" at the top of the synthesis document.
+
+**Solver call (uses `solver-maxsat` — NOT `solver-z3`).** Consult `solver-patterns` skill Template 6 for the exact code pattern. In brief:
+
+1. `mcp__solver-maxsat__clear_model` — fresh model
+2. `mcp__solver-maxsat__add_item(1, ...)` — claim data (list of dicts, incompatible_pairs)
+3. `mcp__solver-maxsat__add_item(2, ...)` — WCNF build + RC2 solve + `export_solution(result_dict)`
+4. `mcp__solver-maxsat__solve_model(timeout=10000)` — 10-second cap
+
+**Parse the result:**
+- `selected_claim_ids` — the max-weight consistent set; render these as the synthesis recommendations
+- `dropped_claim_ids` — excluded by solver; list in the "Filtered claims" appendix with one-line reason per claim (identify which selected claim it conflicts with, if determinable from incompatible_pairs)
+- If `status == "unsatisfiable"`: note "no synthesis-ready claims available; all recommendations require manual review" and skip the appendix
+- If solver times out or errors: fall back to prose synthesis with a warning that MaxSAT filtering was skipped
+
+**Serial constraint.** The `solver-maxsat` MCP server holds shared session state — never invoke it from a parallel `Task` sub-agent. Stage 7 runs only after all six stage sub-agents have completed and returned.
+
 ## Synthesis output
 
-After all six stages complete, produce a single synthesis document with these sections:
+After Stage 7 completes, produce a single synthesis document with these sections. **Only render recommendations that appear in `selected_claim_ids`.** Dropped claims go to the appendix.
 
-1. **Executive summary** (5-7 bullets, every bullet cites a stage's evidence)
+1. **Executive summary** (5-7 bullets, every bullet cites a stage's evidence; only solver-selected claims)
 2. **The market and the niche** (Stage 3 + Stage 5 condensed)
 3. **The competitive set** (Stage 2 — top 3-5 competitors + the whitespace gaps)
-4. **Strategic priorities** (Stage 4 priorities + Stage 3 horizons, ranked by impact × feasibility, with explicit stop-doings)
-5. **Channel mix and rollout** (Stage 6 — phase 1 / phase 2 / phase 3)
+4. **Strategic priorities** (Stage 4 priorities + Stage 3 horizons — only the MaxSAT-selected subset, ranked by `weight × confidence`, with explicit stop-doings)
+5. **Channel mix and rollout** (Stage 6 — phase 1 / phase 2 / phase 3 — only selected claims)
 6. **Open questions and confidence** (where data quality was thin, what to investigate before acting)
+7. **Filtered claims appendix** (Stage 7 dropped claims — one line each: claim ID, atomic claim text, reason dropped)
 
 Write the synthesis to a file named `gtm-audit-{brand-slug}-{YYYY-MM-DD}.md` in the user's current working directory unless they specify otherwise.
 
@@ -69,9 +93,16 @@ Write the synthesis to a file named `gtm-audit-{brand-slug}-{YYYY-MM-DD}.md` in 
 - **All references are to the canonical schemas.** The synthesis isn't a creative writing exercise; every section ties back to structured agent output.
 - **Confidence is honest.** If competitor data is thin or pricing isn't on the site, the audit's confidence drops accordingly. Say so.
 - **Every recommendation is actionable.** "Improve positioning" is not actionable. "Tighten positioning from 'AI marketing platform' to 'AI-powered demand-gen co-pilot for B2B SaaS founders post-PMF' to escape the HubSpot comparison" is.
+- **MaxSAT synthesis is not optional.** If sub-agents emit MaxSAT-ready claims, Stage 7 must run before the synthesis. A synthesis that ignores the solver and concatenates all recommendations is a regression, not a fallback.
+- **Dropped claims get an explanation.** "Claim X was dropped" without a reason is opaque and unhelpful. The appendix must name which selected claim conflicted, or flag "no incompatible pair found — dropped by solver weight optimization."
 
 ## When to skip stages
 
 - Skip Stage 5 (Porter's) for very early-stage / pre-PMF brands — market structure analysis is premature.
 - Skip Stage 6 (channel scoring) if the brand has explicitly asked for a strategic-only audit (no execution layer yet).
 - Always run Stages 1-4 — they're the foundation.
+- Skip Stage 7 (MaxSAT) only if fewer than 3 synthesis-ready claims exist across all stages, or if the `solver-maxsat` MCP server is unavailable. Clearly note the skip reason in the synthesis header.
+
+## Solver dependency
+
+Stage 7 requires the `solver-maxsat` MCP server (registered in `~/.claude.json` as `mcp-solver-maxsat.exe`). If unavailable, the synthesis falls back to prose with a prominent warning. Do not silently degrade — always state the solver status at the top of the synthesis document.

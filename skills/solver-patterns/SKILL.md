@@ -1,6 +1,6 @@
 ---
 name: solver-patterns
-description: Reusable constraint-solver templates for GTMVP agents that produce provably-optimal recommendations. Five Python z3 templates (linear-allocation, knapsack, max-min-distance, set-cover, scheduling-with-deps) that command flows fill with brand-specific data and submit to the solver-z3 MCP server. Mandates labeling, fresh-model, timeout, UNSAT-explanation, and piecewise-linear conventions.
+description: Reusable constraint-solver templates for GTMVP agents that produce provably-optimal recommendations. Six templates — five Z3 (linear-allocation, knapsack, max-min-distance, set-cover, scheduling-with-deps) for solver-z3, plus one PySAT MaxSAT template (maxsat-claim-synthesis) for solver-maxsat used in /gtm-audit D1. Mandates labeling, fresh-model, timeout, UNSAT-explanation, and piecewise-linear conventions.
 ---
 
 # Solver Patterns
@@ -392,9 +392,100 @@ else:
 
 ---
 
+## Template 6: MaxSAT claim synthesis (D1 — `/gtm-audit`)
+
+**Use cases.** Selecting the max-weight consistent subset of atomic GTM recommendations from across all agents when some pairs contradict each other. Uses the `solver-maxsat` MCP server (PySAT RC2 algorithm), NOT `solver-z3`.
+
+**Solver.** `mcp__solver-maxsat__*` tools. Register `solver-maxsat` → `mcp-solver-maxsat.exe` in `~/.claude.json` before invoking.
+
+**Model shape.**
+- Each claim = 1-indexed SAT variable (PySAT convention)
+- Hard clauses: incompatible pairs `[-i, -j]` — cannot both appear in the output
+- Soft clauses: `[i]` with weight = `round(claim.weight × claim.confidence × 10)` — prefer including high-confidence, high-importance claims
+- RC2 solver maximizes total weight of included claims subject to all hard constraints being satisfied
+
+**Slots to fill.**
+- `claims` — list of dicts, each with `id` (claimId string), `weight` (1–10), `confidence` (0.0–1.0)
+- `incompatible_pairs` — list of `[i, j]` 0-indexed pairs from `incompatibleWithClaimIds` edges
+
+**Template code (two `add_item` calls).**
+
+```python
+# Item 1: claim data (filled from collected stage outputs)
+claims = [
+    {"id": "analytics_agent.insight_001", "weight": 8, "confidence": 0.85},
+    {"id": "ppc_agent.keyword_001",        "weight": 7, "confidence": 0.90},
+    # ... all claims with claimId + weight + confidence
+]
+# Pairs are 0-indexed (claim A at index i, claim B at index j)
+incompatible_pairs = [
+    [0, 3],   # analytics_agent.insight_001 incompatible with competitor_mapper_agent.strategy_001
+]
+```
+
+```python
+# Item 2: WCNF model + RC2 solver + export
+wcnf = WCNF()
+
+# Hard clauses: incompatible pairs cannot both be selected
+for pair in incompatible_pairs:
+    wcnf.append([-(pair[0]+1), -(pair[1]+1)])
+
+# Soft clauses: prefer each claim to be included, weight = importance × confidence
+for idx, claim in enumerate(claims):
+    w = max(1, round(claim["weight"] * claim["confidence"] * 10))
+    wcnf.append([idx+1], weight=w)
+
+# Solve with RC2 MaxSAT optimizer
+with RC2(wcnf) as rc2:
+    model = rc2.compute()
+
+if model is not None:
+    true_vars = set(v for v in model if v > 0)
+    selected = sorted([i for i in range(len(claims)) if (i+1) in true_vars])
+    dropped = sorted([i for i in range(len(claims)) if (i+1) not in true_vars])
+    result = {
+        "satisfiable": True,
+        "status": "optimal",
+        "selected_claim_ids": [claims[i]["id"] for i in selected],
+        "dropped_claim_ids":  [claims[i]["id"] for i in dropped],
+        "total_weight": sum(max(1, round(claims[i]["weight"] * claims[i]["confidence"] * 10))
+                           for i in selected),
+    }
+    export_solution(result)
+else:
+    export_solution({
+        "satisfiable": False,
+        "status": "unsatisfiable",
+        "selected_claim_ids": [],
+        "dropped_claim_ids": [c["id"] for c in claims],
+    })
+```
+
+**Output parsing.**
+- `selected_claim_ids` — the max-weight consistent set; include these in the synthesis.
+- `dropped_claim_ids` — excluded by solver. Each dropped claim's reason: "incompatible with higher-weight claim [X]" — compute this post-hoc by intersecting incompatible_pairs for the dropped claim with the selected set.
+- `total_weight` — the objective value achieved by the solver.
+
+**Claim collection protocol (upstream of the solver call).**
+Scan every stage's `recommendations[]` array. Accept a claim into the MaxSAT input only if ALL four fields are present and valid: `claimId`, `atomicClaim`, `weight` (1–10), `confidence` (0.0–1.0). Skip any recommendation missing any field — do not default. Collect `incompatibleWithClaimIds` edges; build `incompatible_pairs` by mapping claim IDs to their 0-based indices.
+
+**Important difference from z3 templates.**
+- Use `export_solution(result_dict)` — pass the dict directly, not `solver=...` (RC2 object is already consumed by `.compute()`).
+- No `clear_model` at the end — the `with RC2(wcnf) as rc2` context manager cleans up the solver.
+- `mcp__solver-maxsat__solve_model` takes `timeout` in **milliseconds** like z3 (pass `timeout=10000`).
+- The MCP server validates that `WCNF()`, `RC2`, and `solver.compute()` are all present in the code — all three are required or `solve_model` returns an error before executing.
+
+**Common pitfalls.**
+- Forgetting that PySAT variables are 1-indexed: claim at index 0 = variable 1. Off-by-one here produces silently wrong answers.
+- Passing the RC2 object to `export_solution(data=rc2_solver)` instead of the result dict — RC2's `.model` attribute is only meaningful before the `with` block exits. Extract the model inside the `with` block.
+- Building incompatible_pairs from only one direction of the edge (A→B but missing B→A). The `incompatibleWithClaimIds` field is directional — both directions are already declared if the schema was followed. De-duplicate before encoding.
+
+---
+
 ## Quality bar
 
-- **No model is ever authored from scratch — always start from a template.** If a problem doesn't fit one of these five shapes, propose a new template addition to this skill before encoding ad-hoc.
+- **No model is ever authored from scratch — always start from a template.** If a problem doesn't fit one of these six shapes, propose a new template addition to this skill before encoding ad-hoc.
 - **Item 1 of every model is data slot-filling**, never logic. This makes diffing two runs against the same brand easy.
 - **All labeled assertions use lowercase snake_case tags** that read as English when narrated to the user. `budget_cap` not `c1`. `dep_seo_keyword_needs_seo_onpage` not `dep_3_0`.
 - **No `print()` of variable values.** `export_solution` handles serialization. `print()` is for status only ("Solution found", "Property verified").
@@ -416,6 +507,7 @@ else:
 - See `swot-analysis` (Phase B1) for the knapsack template integration.
 - See `porters-five-forces` (Phase C1) for the set-cover variant on response packaging.
 - See `tam-sam-som-horizons` (Phase C2) for scheduling-with-deps.
+- See `/gtm-audit` (Phase D1) for the maxsat-claim-synthesis template wired into the synthesis stage. Uses `solver-maxsat` MCP server, not `solver-z3`.
 
 ## Versioning
 
