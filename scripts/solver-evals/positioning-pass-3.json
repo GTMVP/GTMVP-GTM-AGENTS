@@ -1,0 +1,20 @@
+{
+  "description": "Infeasibility scenario — envelope is so tight that every point within it is within 0.5 of a competitor",
+  "integration": "positioning-pass",
+  "template": "max-min-distance",
+  "inputs": {
+    "dim_names": ["price_tier", "audience_sophistication", "feature_depth", "channel_fit", "defensibility_commitment"],
+    "competitor_points": [
+      [3.0, 5.0, 4.0, 3.0, 4.0],
+      [3.5, 5.5, 4.5, 3.5, 4.5],
+      [3.0, 5.5, 4.0, 3.5, 4.0],
+      [3.5, 5.0, 4.5, 3.0, 4.5]
+    ],
+    "envelope_lows": [3.0, 5.0, 4.0, 3.0, 4.0],
+    "envelope_highs": [3.5, 5.5, 4.5, 3.5, 4.5],
+    "dim_weights": [1.0, 1.0, 1.0, 1.0, 1.0]
+  },
+  "expected_min_dist_upper_bound": 1.5,
+  "expected_solver_status": "optimal",
+  "notes": "Technically SAT (there's always a point in the envelope) but the min_dist will be very small — this tests the 'relax your envelope' UX path. With 4 competitors packed into a 0.5-wide envelope, max achievable distance is ~1.25."
+}

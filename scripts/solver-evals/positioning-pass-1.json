@@ -1,0 +1,21 @@
+{
+  "description": "Balanced 5-competitor landscape with moderate envelope — solver should find clear whitespace in price_tier + defensibility",
+  "integration": "positioning-pass",
+  "template": "max-min-distance",
+  "inputs": {
+    "dim_names": ["price_tier", "audience_sophistication", "feature_depth", "channel_fit", "defensibility_commitment"],
+    "competitor_points": [
+      [5.0, 7.0, 8.0, 6.0, 5.0],
+      [3.0, 5.0, 4.0, 3.0, 3.0],
+      [7.0, 8.0, 9.0, 8.0, 7.0],
+      [4.0, 6.0, 6.0, 5.0, 4.0],
+      [6.0, 4.0, 5.0, 7.0, 6.0]
+    ],
+    "envelope_lows": [1.0, 4.0, 3.0, 1.0, 2.0],
+    "envelope_highs": [6.0, 9.0, 7.0, 5.0, 9.0],
+    "dim_weights": [1.0, 1.0, 1.0, 1.0, 1.0]
+  },
+  "expected_min_dist_lower_bound": 5.0,
+  "expected_solver_status": "optimal",
+  "notes": "With a wide envelope, the solver should position the brand far from the cluster. Min distance should be at least 5.0 Manhattan units."
+}

@@ -247,10 +247,16 @@ if (runSolverEvals) {
   console.log(`Solver evals:   ${passed}/${total} passing`);
   for (const r of solverResults) {
     const tag = r.allPass ? "PASS" : "FAIL";
-    const details =
-      r.solverStatus === "infeasible"
-        ? `unsat-core=[${(r.unsatCore || []).join(",")}]`
-        : `obj=${r.solverObjective}, greedy=${r.greedyObjective}, time=${r.solveTimeMs}ms`;
+    let details = `time=${r.solveTimeMs}ms`;
+    if (r.solverStatus === "infeasible") {
+      details = `unsat-core=[${(r.unsatCore || []).join(",")}]`;
+    } else if (r.solverObjective !== undefined) {
+      details = `obj=${r.solverObjective}, greedy=${r.greedyObjective}, ${details}`;
+    } else if (r.minDist !== undefined) {
+      details = `minDist=${r.minDist}, ${details}`;
+    } else if (r.selectedCompetitors) {
+      details = `selected=${r.selectedCompetitors.length}, uncovered=${(r.uncoveredDimensions || []).length}, ${details}`;
+    }
     console.log(`  ${tag}  ${r.file}: ${details}`);
   }
 }

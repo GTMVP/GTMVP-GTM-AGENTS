@@ -33,6 +33,8 @@ For every candidate that passes, fill the `competitorSet[]` entry. For every can
 
 Conform to `competitor_mapper_agent` output (`gtm-output-schemas` skill §6.1). Required: `competitorSet`, `rejectedCandidates`, `whitespaceGaps`, `recommendations`. **Required:** `executionBlocked: true`.
 
+**Solver integration note:** The `/competitor-map` command applies a Z3 set-cover optimization (per `skills/solver-patterns` Template 4) to select the optimal K competitors from the agent's candidate pool. The agent should tag each competitor with coverage dimensions (`pricing_model`, `primary_channel`, `tech_stack_layer`, `buyer_persona`, `deployment_model`, `geographic_focus`, `maturity_stage`) so the solver can build its coverage matrix. Include these tags in the `overlapVector` or as a separate `coverageTags` array per competitor.
+
 ## Quality bar
 
 - **3-6 candidates max.** More = lazy filtering.

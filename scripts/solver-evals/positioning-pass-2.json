@@ -1,0 +1,20 @@
+{
+  "description": "Tight envelope with competitors close by — limited room to maneuver, small but valid whitespace",
+  "integration": "positioning-pass",
+  "template": "max-min-distance",
+  "inputs": {
+    "dim_names": ["price_tier", "audience_sophistication", "feature_depth", "channel_fit", "defensibility_commitment"],
+    "competitor_points": [
+      [3.0, 6.0, 5.0, 3.0, 4.0],
+      [4.0, 7.0, 4.0, 4.0, 5.0],
+      [2.0, 5.0, 6.0, 2.0, 3.0],
+      [3.5, 6.5, 5.5, 3.5, 4.5]
+    ],
+    "envelope_lows": [2.0, 5.0, 4.0, 2.0, 3.0],
+    "envelope_highs": [5.0, 8.0, 7.0, 5.0, 6.0],
+    "dim_weights": [1.0, 1.0, 1.0, 1.0, 1.0]
+  },
+  "expected_min_dist_lower_bound": 2.0,
+  "expected_solver_status": "optimal",
+  "notes": "Tight market — competitors clustered around [3,6,5,3,4]. Solver should push to envelope edges. Valid but cramped whitespace."
+}

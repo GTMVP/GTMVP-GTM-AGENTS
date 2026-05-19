@@ -1,0 +1,26 @@
+{
+  "description": "6 candidates, pick 3 — tight selection forces tradeoffs in coverage",
+  "integration": "competitor-map",
+  "template": "set-cover",
+  "inputs": {
+    "item_ids": ["comp_a", "comp_b", "comp_c", "comp_d", "comp_e", "comp_f"],
+    "dim_names": [
+      "pricing_freemium", "pricing_enterprise", "channel_seo", "channel_paid",
+      "buyer_ops", "deploy_hybrid"
+    ],
+    "coverage": [
+      [0, 2, 4],
+      [1, 3, 5],
+      [0, 3],
+      [1, 2, 4, 5],
+      [0, 5],
+      [1, 2, 3]
+    ],
+    "costs": [1, 1, 1, 1, 1, 1],
+    "target_size": 3,
+    "min_coverage_per_dim": 1
+  },
+  "expected_all_dims_covered": true,
+  "expected_solver_status": "optimal",
+  "notes": "Minimum viable coverage at K=3. comp_a + comp_b cover 6/6 dims, but that's only 2 — the solver must find 3 that still cover all. comp_d alone covers 4/6."
+}
