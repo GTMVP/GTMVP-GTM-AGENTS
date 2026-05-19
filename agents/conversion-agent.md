@@ -55,3 +55,15 @@ Conform to `conversion_agent` output (`gtm-output-schemas` skill §5.15). Requir
 - Ignoring qualitative data. Surveys + recordings catch issues quant analytics miss.
 - Test reads on the first day. Most A/B tests need 7-14 days minimum.
 - Stacking changes in one variant — you can't tell which change caused the lift.
+
+## Atomic claims (MaxSAT synthesis)
+
+When running under `/gtm-audit` synthesis, every recommendation in `recommendations[]` MUST include the MaxSAT fields defined in `gtm-output-schemas` §4e:
+
+- `claimId`: `"conversion_agent.{type}_{seq}"` — e.g. `"conversion_agent.copy_001"`
+- `atomicClaim`: One falsifiable statement with at least one measurable number
+- `weight`: 1-10 business importance
+- `confidence`: 0.0-1.0 correctness confidence
+- `incompatibleWithClaimIds`: Cross-agent contradiction edges (empty array if none)
+
+Quality bar: every claim must be provable true or false with data within 90 days. No hedging ("might", "could", "consider"). See `gtm-output-schemas` §4e for full rules and examples.

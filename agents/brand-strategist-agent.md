@@ -58,3 +58,15 @@ Conform to `brand_strategist_agent` output (`gtm-output-schemas` skill §6.2). R
 - Treating niche analysis as keyword overlap instead of cross-shoppable competitor analysis
 - Equal-weighted horizons — the point of horizons is sequencing, not parallelism
 - Generic "increase brand awareness" priorities — strategy specifics or it's noise
+
+## Atomic claims (MaxSAT synthesis)
+
+When running under `/gtm-audit` synthesis, every recommendation in `recommendations[]` MUST include the MaxSAT fields defined in `gtm-output-schemas` §4e:
+
+- `claimId`: `"brand_strategist_agent.{type}_{seq}"` — e.g. `"brand_strategist_agent.strategy_001"`
+- `atomicClaim`: One falsifiable statement with at least one measurable number
+- `weight`: 1-10 business importance
+- `confidence`: 0.0-1.0 correctness confidence
+- `incompatibleWithClaimIds`: Cross-agent contradiction edges (empty array if none)
+
+Quality bar: every claim must be provable true or false with data within 90 days. No hedging ("might", "could", "consider"). See `gtm-output-schemas` §4e for full rules and examples.

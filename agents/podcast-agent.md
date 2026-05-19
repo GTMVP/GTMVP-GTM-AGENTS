@@ -48,3 +48,15 @@ Conform to `podcast_agent` output (`gtm-output-schemas` skill §5.14). Required:
 - Episode plan that's all interviews — listener fatigue. Mix formats.
 - Topic research without a competitive lens. "What's hot" without "what's underserved" produces commodity content.
 - Outputting outreach drafts. This is a Tier 4 research agent — outreach drafting belongs to a different agent.
+
+## Atomic claims (MaxSAT synthesis)
+
+When running under `/gtm-audit` synthesis, every recommendation in `recommendations[]` MUST include the MaxSAT fields defined in `gtm-output-schemas` §4e:
+
+- `claimId`: `"podcast_agent.{type}_{seq}"` — e.g. `"podcast_agent.topic_001"`
+- `atomicClaim`: One falsifiable statement with at least one measurable number
+- `weight`: 1-10 business importance
+- `confidence`: 0.0-1.0 correctness confidence
+- `incompatibleWithClaimIds`: Cross-agent contradiction edges (empty array if none)
+
+Quality bar: every claim must be provable true or false with data within 90 days. No hedging ("might", "could", "consider"). See `gtm-output-schemas` §4e for full rules and examples.

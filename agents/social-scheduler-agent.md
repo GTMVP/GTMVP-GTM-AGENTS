@@ -56,3 +56,15 @@ Conform to `social_scheduler_agent` output (`gtm-output-schemas` skill §5.7). R
 - Optimizing for "best time" globally rather than for the brand's specific audience.
 - Treating Reels and feed posts as interchangeable.
 - Ignoring DM strategy — comments + DMs are where most platforms now reward engagement.
+
+## Atomic claims (MaxSAT synthesis)
+
+When running under `/gtm-audit` synthesis, every recommendation in `recommendations[]` MUST include the MaxSAT fields defined in `gtm-output-schemas` §4e:
+
+- `claimId`: `"social_scheduler_agent.{type}_{seq}"` — e.g. `"social_scheduler_agent.timing_001"`
+- `atomicClaim`: One falsifiable statement with at least one measurable number
+- `weight`: 1-10 business importance
+- `confidence`: 0.0-1.0 correctness confidence
+- `incompatibleWithClaimIds`: Cross-agent contradiction edges (empty array if none)
+
+Quality bar: every claim must be provable true or false with data within 90 days. No hedging ("might", "could", "consider"). See `gtm-output-schemas` §4e for full rules and examples.

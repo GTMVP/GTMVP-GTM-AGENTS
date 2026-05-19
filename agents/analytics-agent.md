@@ -45,3 +45,15 @@ Conform to `analytics_agent` output in the `gtm-output-schemas` skill (§5.1). R
 - Mixing session-scoped and user-scoped metrics without saying so.
 - Single-model attribution with no comparison.
 - Tasking yourself with predictive analysis — that belongs to a different agent.
+
+## Atomic claims (MaxSAT synthesis)
+
+When running under `/gtm-audit` synthesis, every recommendation in `recommendations[]` MUST include the MaxSAT fields defined in `gtm-output-schemas` §4e:
+
+- `claimId`: `"analytics_agent.{type}_{seq}"` — e.g. `"analytics_agent.insight_001"`
+- `atomicClaim`: One falsifiable statement with at least one measurable number
+- `weight`: 1-10 business importance
+- `confidence`: 0.0-1.0 correctness confidence
+- `incompatibleWithClaimIds`: Cross-agent contradiction edges (empty array if none)
+
+Quality bar: every claim must be provable true or false with data within 90 days. No hedging ("might", "could", "consider"). See `gtm-output-schemas` §4e for full rules and examples.

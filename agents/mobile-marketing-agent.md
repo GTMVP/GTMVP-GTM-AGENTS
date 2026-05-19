@@ -56,3 +56,15 @@ Conform to `mobile_marketing_agent` output (`gtm-output-schemas` skill §5.16). 
 - Ignoring quiet hours by timezone (8am-9pm in subscriber's local zone).
 - Bulk re-confirmation after consent expiry — that itself can violate the prior-express-consent requirement.
 - Carrier-block recovery without the underlying issue diagnosis — relistings get re-blocked fast.
+
+## Atomic claims (MaxSAT synthesis)
+
+When running under `/gtm-audit` synthesis, every recommendation in `recommendations[]` MUST include the MaxSAT fields defined in `gtm-output-schemas` §4e:
+
+- `claimId`: `"mobile_marketing_agent.{type}_{seq}"` — e.g. `"mobile_marketing_agent.compliance_001"`
+- `atomicClaim`: One falsifiable statement with at least one measurable number
+- `weight`: 1-10 business importance
+- `confidence`: 0.0-1.0 correctness confidence
+- `incompatibleWithClaimIds`: Cross-agent contradiction edges (empty array if none)
+
+Quality bar: every claim must be provable true or false with data within 90 days. No hedging ("might", "could", "consider"). See `gtm-output-schemas` §4e for full rules and examples.

@@ -86,6 +86,15 @@ interface Recommendation {
   suggestion: string;                        // What to do
   reason?: string;                           // Why
   expectedImpact?: string;                   // Predicted business outcome
+
+  // --- MaxSAT synthesis fields (§4e) ---
+  // Required when `/gtm-audit` synthesis is the consumer.
+  // Optional for standalone agent runs — backward compatible.
+  claimId?: string;                          // Stable ID: "{agentId}.{type}_{seq}", e.g. "seo_keyword_agent.content_001"
+  atomicClaim?: string;                      // One falsifiable statement. See §4e quality bar.
+  incompatibleWithClaimIds?: string[];       // Explicit contradiction edges to claims from OTHER agents
+  weight?: number;                           // 1-10, soft constraint priority for MaxSAT. 10 = must-have, 1 = nice-to-have.
+  confidence?: number;                       // 0.0-1.0, agent's confidence this claim is correct given inputs
 }
 ```
 
@@ -119,6 +128,273 @@ interface AgentExecutionResult<TOutput> {
   reasoningTrace: string[];     // Step-by-step reasoning for audit
 }
 ```
+
+### 4e. Atomic claims for MaxSAT synthesis
+
+When `/gtm-audit` runs its synthesis step (Phase D1), it collects `recommendations[]` from every sub-agent and feeds them to a MaxSAT solver. The solver finds the **maximum-weight consistent subset** — the largest set of recommendations that don't contradict each other. This section defines the contract that makes recommendations MaxSAT-compatible.
+
+#### Claim ID format
+
+```
+{agentId}.{type}_{sequence}
+```
+
+Examples: `seo_keyword_agent.content_001`, `ad_optimizer_agent.budget_003`, `content_strategy_agent.create_002`.
+
+- `agentId` uses the stable slug from §3.
+- `type` matches the agent's recommendation type enum (see §5).
+- `sequence` is a zero-padded 3-digit counter, unique within a single agent run. Starts at `001`.
+- The full `claimId` is globally unique within a `/gtm-audit` session.
+
+#### Quality bar: falsifiable, not aspirational
+
+Every `atomicClaim` must be a **single falsifiable statement** — something that can be proven true or false with data within 90 days. The test: "Could a competent analyst look at this claim in 90 days and say YES or NO?"
+
+| Quality | Example | Why |
+|---------|---------|-----|
+| **BAD** | "Improve your SEO strategy" | Not falsifiable. What does "improve" mean? |
+| **BAD** | "Consider investing in content marketing" | Aspirational. No measurable commitment. |
+| **BAD** | "SEO is important for this brand" | Truism. Not actionable. |
+| **GOOD** | "Targeting 'product analytics open source' (vol: 2.4K, KD: 45) will generate 150+ monthly organic visits within 6 months" | Falsifiable: specific keyword, measurable target, time-bound. |
+| **GOOD** | "A weekly developer changelog newsletter will achieve 30%+ open rate for this audience segment" | Falsifiable: specific format, specific metric, specific threshold. |
+| **GOOD** | "Reducing Google Ads CPA target from $50 to $35 will increase conversion volume by 20% without exceeding $10K monthly spend" | Falsifiable: specific input change, measurable outcome, budget constraint. |
+
+Rules:
+1. **One claim per recommendation.** If a recommendation contains two assertions ("do X AND do Y"), split into two recommendations.
+2. **Include a number.** Every claim must contain at least one measurable quantity — a target, threshold, cost, volume, or percentage.
+3. **Include a timeframe** when the claim involves a future outcome. Default: 90 days if not specified.
+4. **No hedging language.** "Might improve", "could potentially", "should consider" are not claims. Commit or don't claim.
+
+#### Weight assignment (1-10)
+
+| Weight | Meaning | Use when |
+|--------|---------|----------|
+| 10 | Must-have — dropping this recommendation would be a critical error | Compliance, security, existential risk |
+| 8-9 | Strong conviction — backed by multiple data signals | High-confidence quantitative finding |
+| 5-7 | Moderate — supported by evidence but with uncertainty | Most standard recommendations |
+| 3-4 | Speculative — reasonable hypothesis, limited data | Emerging opportunities, untested channels |
+| 1-2 | Nice-to-have — low-impact or low-confidence | Optimization tweaks, cosmetic improvements |
+
+Weight maps directly to the MaxSAT soft clause weight. Higher-weight claims are preferentially retained when contradictions force the solver to drop claims.
+
+#### Confidence (0.0-1.0)
+
+Confidence represents the agent's assessment of claim correctness given the available inputs. It is NOT the same as weight (which represents business importance).
+
+- **0.9-1.0**: Claim is derived from direct measurement or authoritative data (e.g., GA4 shows 2.3% conversion rate)
+- **0.7-0.8**: Claim is inferred from strong signals (e.g., competitor analysis, keyword tools, industry benchmarks)
+- **0.5-0.6**: Claim is a reasonable inference with partial data (e.g., ICP analysis suggests this channel fits)
+- **0.3-0.4**: Claim is speculative — informed guess based on pattern matching
+- **0.0-0.2**: Don't emit the claim. If confidence is below 0.3, the agent should omit the recommendation entirely.
+
+#### Incompatibility edges
+
+`incompatibleWithClaimIds` declares explicit contradictions between claims from different agents. When two claims are incompatible, the MaxSAT solver can include at most one.
+
+Common incompatibility patterns:
+
+| Pattern | Example |
+|---------|---------|
+| **Budget competition** | `ad_optimizer_agent.budget_001` ("Allocate 60% of paid budget to Meta") conflicts with `ppc_agent.budget_001` ("Allocate 70% of paid budget to Google Ads") |
+| **Channel conflict** | `content_strategy_agent.create_001` ("Publish 3 blog posts/week") conflicts with `video_content_agent.seo_001` ("Shift content investment to video tutorials") when team capacity is fixed |
+| **Audience contradiction** | `social_scheduler_agent.timing_001` ("Post at 9am EST for enterprise audience") conflicts with `social_scheduler_agent.timing_002` ("Post at 7pm EST for developer audience") when brand targets both |
+| **Strategic direction** | `brand_strategist_agent` claim ("Position as enterprise-grade") conflicts with `conversion_agent.cta_001` ("Use PLG self-serve signup flow") |
+
+Rules:
+1. **Cross-agent only.** An agent never declares incompatibility with its own claims — internal consistency is the agent's responsibility.
+2. **Symmetric.** If A declares incompatibility with B, B should also declare incompatibility with A. However, the MaxSAT solver treats incompatibility as a hard constraint regardless of who declared it.
+3. **Specific, not categorical.** Don't declare "all PPC claims conflict with all SEO claims." Declare specific claim-to-claim edges.
+4. **Conservative.** Only declare incompatibility when executing BOTH claims would produce a contradictory or harmful outcome. Two claims that compete for budget are only incompatible if their combined spend exceeds the budget — if both fit within budget, they're compatible.
+
+#### Per-agent atomic claim examples
+
+Below are representative atomic claims for each agent tier, showing what well-formed claims look like in practice.
+
+**Tier 1 — Auto-Pilot agents**
+
+`analytics_agent`:
+```json
+{
+  "claimId": "analytics_agent.insight_001",
+  "atomicClaim": "Organic search drives 42% of conversions but receives only 15% of marketing spend — reallocating $3K/mo from display to SEO content will yield 25+ additional monthly conversions",
+  "weight": 7,
+  "confidence": 0.85,
+  "incompatibleWithClaimIds": ["ad_optimizer_agent.budget_001"]
+}
+```
+
+`technical_seo_agent`:
+```json
+{
+  "claimId": "technical_seo_agent.technical_001",
+  "atomicClaim": "LCP is 4.2s (poor) on /pricing — optimizing hero image and deferring below-fold JS will bring LCP under 2.5s (good) and recover an estimated 8% bounce rate reduction",
+  "weight": 8,
+  "confidence": 0.9,
+  "incompatibleWithClaimIds": []
+}
+```
+
+`local_seo_agent`:
+```json
+{
+  "claimId": "local_seo_agent.fix_001",
+  "atomicClaim": "NAP inconsistency across 7 of 12 citation sources for the Miami office — correcting phone number format to (305) 555-1234 on Yelp, YP, and Foursquare will resolve 58% of citation errors within 30 days",
+  "weight": 6,
+  "confidence": 0.95,
+  "incompatibleWithClaimIds": []
+}
+```
+
+**Tier 2 — Co-Pilot agents**
+
+`seo_keyword_agent`:
+```json
+{
+  "claimId": "seo_keyword_agent.content_001",
+  "atomicClaim": "Creating a comparison page targeting 'posthog vs amplitude' (vol: 1.8K, KD: 38) will rank in top 5 within 4 months given current DA of 72 and generate 400+ monthly visits",
+  "weight": 8,
+  "confidence": 0.75,
+  "incompatibleWithClaimIds": []
+}
+```
+
+`content_strategy_agent`:
+```json
+{
+  "claimId": "content_strategy_agent.create_001",
+  "atomicClaim": "Publishing 2 technical tutorials per week (Python + JavaScript SDK guides) will increase organic blog traffic by 35% within 90 days based on keyword gap analysis showing 15 uncontested longtail terms with combined volume of 8K/mo",
+  "weight": 7,
+  "confidence": 0.7,
+  "incompatibleWithClaimIds": ["video_content_agent.seo_001"]
+}
+```
+
+`email_automation_agent`:
+```json
+{
+  "claimId": "email_automation_agent.segment_001",
+  "atomicClaim": "Segmenting the onboarding drip by 'installed SDK' vs 'signed up only' and sending SDK-specific tutorials to the installed segment will increase activation rate from 23% to 30% within 60 days",
+  "weight": 7,
+  "confidence": 0.65,
+  "incompatibleWithClaimIds": []
+}
+```
+
+`social_scheduler_agent`:
+```json
+{
+  "claimId": "social_scheduler_agent.timing_001",
+  "atomicClaim": "Posting technical content on LinkedIn at 10am EST Tuesday-Thursday will achieve 2.5x the engagement rate of the current random schedule, based on audience activity data showing 68% of followers active during business hours",
+  "weight": 5,
+  "confidence": 0.7,
+  "incompatibleWithClaimIds": []
+}
+```
+
+`video_content_agent`:
+```json
+{
+  "claimId": "video_content_agent.seo_001",
+  "atomicClaim": "A 5-part YouTube tutorial series on 'PostHog for startups' (est. 8-12 min each) will generate 10K+ views in 90 days and drive 200+ signups via video description CTAs, based on competitor tutorial performance in the product analytics niche",
+  "weight": 6,
+  "confidence": 0.55,
+  "incompatibleWithClaimIds": ["content_strategy_agent.create_001"]
+}
+```
+
+**Tier 3 — Assistant agents**
+
+`backlink_builder_agent`:
+```json
+{
+  "claimId": "backlink_builder_agent.strategy_001",
+  "atomicClaim": "Guest posting on Dev.to, Hacker Noon, and The New Stack (3 posts over 6 weeks) will acquire 5+ DA 50+ backlinks and improve domain authority from 72 to 74 within 90 days",
+  "weight": 6,
+  "confidence": 0.6,
+  "incompatibleWithClaimIds": []
+}
+```
+
+`ad_optimizer_agent`:
+```json
+{
+  "claimId": "ad_optimizer_agent.budget_001",
+  "atomicClaim": "Reallocating 60% of the $10K paid social budget to LinkedIn (from current 40/40/20 Meta/LinkedIn/Display split) will reduce CPA from $85 to $60 for the enterprise ICP segment within 30 days",
+  "weight": 7,
+  "confidence": 0.65,
+  "incompatibleWithClaimIds": ["ppc_agent.budget_001"]
+}
+```
+
+`ppc_agent`:
+```json
+{
+  "claimId": "ppc_agent.keyword_001",
+  "atomicClaim": "Adding 'session replay tool' and 'feature flag service' as exact-match keywords with $4.50 max CPC will generate 15+ qualified clicks/day at a CPA under $45, based on search volume of 2.1K and 1.4K respectively",
+  "weight": 7,
+  "confidence": 0.7,
+  "incompatibleWithClaimIds": []
+}
+```
+
+`influencer_connect_agent`:
+```json
+{
+  "claimId": "influencer_connect_agent.selection_001",
+  "atomicClaim": "Partnering with 2 mid-tier dev YouTubers (50K-200K subscribers, >4% engagement rate) for sponsored integration tutorials will generate 500+ signups at a CAC under $25 per signup, based on comparable campaigns in the DevTools space",
+  "weight": 5,
+  "confidence": 0.5,
+  "incompatibleWithClaimIds": []
+}
+```
+
+`pr_outreach_agent`:
+```json
+{
+  "claimId": "pr_outreach_agent.angle_001",
+  "atomicClaim": "Pitching the 'open-source product analytics replaces $50K/yr enterprise stack' angle to TechCrunch, The Information, and InfoWorld will generate 2+ tier-1 media placements within 60 days based on the trending 'open-source enterprise' narrative",
+  "weight": 4,
+  "confidence": 0.45,
+  "incompatibleWithClaimIds": []
+}
+```
+
+**Tier 4-5 — Research and Observer agents**
+
+These agents emit `executionBlocked: true` and their claims carry lower default weights (3-5) since they are intelligence-only.
+
+`podcast_agent`:
+```json
+{
+  "claimId": "podcast_agent.topic_001",
+  "atomicClaim": "A 6-episode interview series with PostHog power users (engineering leads at Supabase, ElevenLabs, Hasura) will generate 500+ downloads per episode within 90 days of launch based on comparable DevTools podcast performance",
+  "weight": 4,
+  "confidence": 0.5,
+  "incompatibleWithClaimIds": ["content_strategy_agent.create_001"]
+}
+```
+
+`conversion_agent`:
+```json
+{
+  "claimId": "conversion_agent.cta_001",
+  "atomicClaim": "Changing the pricing page CTA from 'Talk to sales' to 'Start free — no credit card' will increase self-serve signups by 15% based on A/B test data from comparable PLG SaaS companies",
+  "weight": 8,
+  "confidence": 0.6,
+  "incompatibleWithClaimIds": []
+}
+```
+
+#### Validation rules for `/gtm-audit` synthesis
+
+When `/gtm-audit` collects recommendations for MaxSAT synthesis, it validates each recommendation:
+
+1. **Required fields check.** `claimId`, `atomicClaim`, `weight`, and `confidence` must all be present. Recommendations missing any field are logged as warnings and excluded from synthesis.
+2. **Falsifiability check.** `atomicClaim` must contain at least one number (metric, percentage, dollar amount, count, or timeframe). Claims without numbers are rejected.
+3. **Confidence floor.** Claims with `confidence < 0.3` are excluded — they add noise to the synthesis.
+4. **Weight bounds.** `weight` must be 1-10. Values outside this range are clamped.
+5. **Claim ID uniqueness.** Duplicate `claimId` values within a session cause the second occurrence to be rejected.
+6. **Incompatibility symmetry check.** If claim A lists claim B as incompatible, and B exists but doesn't list A, the synthesis engine adds the reverse edge automatically (logs a warning).
 
 ## 5. Per-agent schemas
 
