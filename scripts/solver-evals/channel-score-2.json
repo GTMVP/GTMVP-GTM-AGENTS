@@ -1,0 +1,25 @@
+{
+  "_doc": "Tight budget forcing real tradeoffs. Solver should drop low-score expensive options in favor of high-score cheap ones, respecting team_size cap.",
+  "_expected_outcome": "Greedy picks top-3 by score and runs out of budget after 2. Solver finds the optimal 3-channel mix beneath the cap.",
+
+  "option_ids": [
+    "agent_seo_onpage_001",
+    "agent_paid_linkedin_018",
+    "agent_email_drip_021",
+    "agent_content_blog_010",
+    "agent_paid_search_015"
+  ],
+  "scores":          [7.0, 9.5, 7.5, 8.0, 8.5],
+  "min_viable":      [1500, 8000, 2000, 4000, 3500],
+  "max_useful":      [5000, 25000, 7000, 12000, 10000],
+  "total_budget":    15000,
+  "max_concentration_pct": 0.55,
+  "dependencies":    [],
+  "compounding_indices":   [0, 3],
+  "fast_feedback_indices": [1, 2, 4],
+  "team_size": 1,
+
+  "expected_status": "optimal",
+  "_optimum_note": "Calibrated against canonical template on 2026-05-19. Tight budget ($15K) forces solver to satisfy min_compounding + min_fast_feedback under team_size=1 cap. Greedy would over-allocate to high-score LinkedIn ($8K min) and miss compounding floor.",
+  "expected_optimum": 1631.17
+}

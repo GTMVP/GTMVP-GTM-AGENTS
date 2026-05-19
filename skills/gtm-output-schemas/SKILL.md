@@ -1,6 +1,6 @@
 ---
 name: gtm-output-schemas
-description: Canonical input/output JSON schemas for the 18 GTM marketing agents in this plugin. Use when an agent needs to know the exact shape of its input parameters or output payload, or when a slash command needs to validate agent results before chaining them. Covers analytics, SEO, content, social, email, video, backlinks, PR, paid ads, PPC, influencers, podcast, conversion, mobile, plus the cross-cutting brand context, trust-tier, and recommendation envelopes.
+description: Canonical input/output JSON schemas for the 18 GTM marketing agents in this plugin. Use when an agent needs to know the exact shape of its input parameters or output payload, or when a slash command needs to validate agent results before chaining them. Covers analytics, SEO, content, social, email, video, backlinks, PR, paid ads, PPC, influencers, podcast, conversion, mobile, plus the cross-cutting brand context, trust-tier, recommendation envelopes, and solver invocation conventions.
 ---
 
 # GTM Output Schemas
@@ -606,7 +606,94 @@ Output {
 
 The `data/channel-taxonomy.json` file in this plugin defines 28 micro-channels. When an agent's output references a channel, use the canonical `agent_id` slug from that file (e.g. `agent_seo_onpage_001`, not freeform "on-page SEO"). This makes downstream channel-mix analysis joinable across agent runs.
 
-## 8. Versioning rules
+## 8. Solver Conventions
+
+Several agents (`/channel-score`, `/positioning-pass`, `/competitor-map`, `swot-analysis`, `porters-five-forces`, `tam-sam-som-horizons`) invoke the `solver-z3` MCP server for provably-optimal recommendations under explicit constraints. Every solver-using agent MUST follow these conventions. Detailed Python z3 templates live in the `solver-patterns` skill — this section codifies the runtime rules.
+
+### 9.1 Fresh-model pattern
+
+Every solver-backed agent begins with `mcp__solver-z3__clear_model` and ends with `mcp__solver-z3__clear_model`, with `add_item` + `solve_model` calls in between. Skip the trailing `clear_model` only when the same agent is mid-conversation re-solving incrementally for what-if analysis.
+
+```
+clear_model → add_item(0, "from z3 import *; from mcp_solver.z3 import export_solution") →
+  add_item(1, brand_data) → add_item(2, variables) → add_item(3, constraints) →
+  add_item(4, objective) → add_item(5, export_solution_call) →
+  solve_model(timeout=10000) → clear_model
+```
+
+### 9.2 No solver in parallel sub-agents (CRITICAL)
+
+The `solver-z3` MCP server holds shared session state. If two parallel `Task` sub-agents both invoke solver tools simultaneously, their `add_item` calls interleave and produce a corrupted model that may nonetheless return a clean number. This is the #1 silent-bug risk.
+
+**Rules:**
+- `/gtm-audit` and any future orchestrator must serialize solver-using stages. Two solver agents cannot run inside the same `Task` parallel block.
+- Prefer placing solver invocation in the **synthesis stage** (final, sequential) rather than inside parallel research sub-agents.
+- If a sub-agent absolutely needs the solver, the parent must dispatch sub-agents sequentially for those tasks — explicit `Task A → wait → Task B → wait`.
+
+### 9.3 Labeling convention for UNSAT explainability
+
+Every `assert_and_track` call uses a lowercase snake_case label that reads as English when narrated to the user. Labels appear in the unsat core when constraints are infeasible — that core is what the agent translates into "your constraints are too tight, try relaxing X" guidance.
+
+Required label format:
+- `budget_cap` — single global constraint
+- `max_concentration_paid_search` — per-category constraint
+- `dep_<child_id>_needs_<parent_id>` — dependency constraints
+- `min_compounding` — categorical floor constraints
+- `team_capacity` — operator-capacity constraint
+
+Never use `c1`, `c2`, `assertion_0` — these surface as opaque IDs to the user.
+
+### 9.4 Timeout policy
+
+Default `solve_model` timeout = **10 seconds** for optimization problems, **5 seconds** for pure SAT feasibility checks, **15 seconds** for scheduling problems with dependencies.
+
+Treat solver timeout as **functional infeasibility** — not as a system error. The agent surfaces it as: "Constraints could not be satisfied within the time budget; the active hard constraints are [list]. Consider relaxing one of them."
+
+### 9.5 UNSAT explanation pattern
+
+When `solve_model` returns UNSAT or times out, the agent MUST:
+
+1. Extract the minimal unsat core via `solver.unsat_core()` (Python z3 API — surfaces in `export_solution` output).
+2. Translate each label tag to a prose sentence using a lookup table the agent maintains for its constraint set.
+3. Suggest at most 2 relaxations, ordered by least-disruptive. Example: "Your `min_compounding ≥ 1` and `team_capacity ≤ 3` together leave no room for a feasible allocation with current `budget_cap = $30K`. Consider either raising budget to $45K (unlocks SEO + community + 1 paid channel) or dropping the compounding floor (allows all-paid mix for fast feedback)."
+4. Never present raw assertion IDs or Z3 expressions to the user.
+
+### 9.6 Piecewise-linear approximation policy
+
+Z3 has no native `sqrt` or `log`. For diminishing-returns objectives, use **5 breakpoints with logarithmic spacing** between each option's minimum viable spend and maximum useful spend. The breakpoint computation lives in `solver-patterns` §1 as the `pwl_sqrt` helper — use it directly, do not re-derive breakpoint counts or spacing.
+
+Why this matters: if Claude authors 3-breakpoint approximations in one run and 7-breakpoint in another, the same brand context produces different "optimal" allocations across sessions. The 5-breakpoint policy is the reproducibility guarantee.
+
+### 9.7 Export contract
+
+Every solver run ends with exactly one `export_solution(...)` call:
+
+- Satisfiable: `export_solution(solver=opt, variables=variables, objective=opt.objectives()[0])`
+- Infeasible: `export_solution(satisfiable=False, variables=variables)`
+- Timeout: same as infeasible — `export_solution(satisfiable=False, variables=variables)` + an extra `print("Timeout after 10s")` so the orchestrator can distinguish.
+
+The `variables` dictionary keys are stable IDs derived from the brand's taxonomy slugs (e.g. `spend_agent_seo_onpage_001`). Free-form names break the eval harness's stability check.
+
+### 9.8 Output addition to BaseAgentOutput
+
+Solver-using agents extend their existing output schema with a `solverResult` block:
+
+```ts
+interface SolverResult {
+  status: 'optimal' | 'feasible' | 'infeasible' | 'timeout';
+  values: Record<string, number | boolean>;       // variable_name → assigned value
+  objective?: number;                              // present when status is 'optimal' | 'feasible'
+  activeConstraints: string[];                     // labels of constraints binding at the optimum
+  unsatCore?: string[];                            // labels that conflict; present when status is 'infeasible'
+  relaxationSuggestions?: string[];                // English prose suggestions; present when 'infeasible' or 'timeout'
+  solveTimeMs: number;
+  templateUsed: 'linear-allocation' | 'knapsack' | 'max-min-distance' | 'set-cover' | 'scheduling-with-deps';
+}
+```
+
+This block is appended to the agent's existing output, never replacing existing fields. Downstream agents that don't understand solver results continue to read the agent's traditional ranked-list output.
+
+## 9. Versioning rules
 
 - Every agent prompt has its own SemVer (`version` field on output).
 - Bumping a schema field is a **MAJOR** version bump for the affected agent.

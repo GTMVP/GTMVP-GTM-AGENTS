@@ -7,12 +7,19 @@
  *   - channel-taxonomy.json parses and has the expected shape
  *   - Inter-file references aren't broken (skills cited by agents exist)
  *
+ * With --solver-evals flag also runs the constraint-solver eval harness:
+ *   - Loads each scripts/solver-evals/*.json scenario
+ *   - Invokes the matching reference runner (run-<scenario-stem>.py) via the
+ *     mcp-solver venv Python
+ *   - Records pass/fail per scenario; aggregates to overall solver result
+ *
  * Exit code: 0 = pass, 1 = fail. Prints a summary table.
  */
 
 import { readFileSync, readdirSync, existsSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
+import { execSync } from "node:child_process";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(__dirname, "..");
@@ -68,7 +75,9 @@ if (!existsSync(taxonomyPath)) {
 }
 
 // 3. YAML frontmatter validator (lightweight — checks --- delimiters and required keys)
-function parseFrontmatter(content, filename) {
+// Normalizes CRLF (Windows) → LF before parsing so Windows-checked-out files validate.
+function parseFrontmatter(rawContent, filename) {
+  const content = rawContent.replace(/\r\n/g, "\n");
   if (!content.startsWith("---\n")) {
     fail(`${filename}: missing opening '---' frontmatter delimiter`);
     return null;
@@ -170,13 +179,81 @@ for (const a of expectedAgents) {
   if (!agentNames.has(a)) fail(`Expected agent '${a}' not found`);
 }
 
-// 8. Print results
+// 8. Solver evals (opt-in via --solver-evals flag)
+const runSolverEvals = process.argv.includes("--solver-evals");
+const solverResults = [];
+if (runSolverEvals) {
+  const evalsDir = join(ROOT, "scripts", "solver-evals");
+  if (!existsSync(evalsDir)) {
+    warn("--solver-evals requested but scripts/solver-evals/ does not exist");
+  } else {
+    // Find Python — prefer mcp-solver venv, fall back to system python
+    const venvPython =
+      process.platform === "win32"
+        ? "C:\\Users\\User\\Projects\\mcp-solver\\.venv\\Scripts\\python.exe"
+        : `${process.env.HOME}/Projects/mcp-solver/.venv/bin/python`;
+    const pythonBin = existsSync(venvPython) ? venvPython : "python";
+
+    // Group scenario files by the runner script that handles them.
+    // Convention: run-<prefix>.py handles all <prefix>-*.json scenarios.
+    // Example: run-channel-score.py handles channel-score-1.json, channel-score-2.json, ...
+    const files = readdirSync(evalsDir).filter((f) => f.endsWith(".json"));
+    for (const f of files) {
+      const stem = f.replace(/\.json$/, "");
+      // Find the matching runner: strip trailing -N suffix to get the prefix
+      const prefix = stem.replace(/-\d+$/, "");
+      const runner = join(evalsDir, `run-${prefix}.py`);
+      if (!existsSync(runner)) {
+        fail(`solver-evals: no runner found for ${f} (expected ${prefix}.py)`);
+        continue;
+      }
+      const scenarioPath = join(evalsDir, f);
+      try {
+        const output = execSync(`"${pythonBin}" "${runner}" "${scenarioPath}"`, {
+          encoding: "utf8",
+          stdio: ["ignore", "pipe", "pipe"],
+        });
+        const parsed = JSON.parse(output);
+        solverResults.push({ file: f, ...parsed });
+      } catch (e) {
+        // Non-zero exit means scenario failed; output is still on stdout.
+        const stdout = e.stdout || "";
+        let parsed = null;
+        try {
+          parsed = JSON.parse(stdout);
+        } catch {
+          parsed = { error: e.message.slice(0, 200) };
+        }
+        solverResults.push({ file: f, ...parsed, exitCode: e.status });
+        if (!parsed?.allPass) {
+          fail(`solver-evals: ${f} failed (${JSON.stringify(parsed?.passes ?? parsed?.error)})`);
+        }
+      }
+    }
+  }
+}
+
+// 9. Print results
 console.log("\n=== GTMVP-GTM-AGENTS Plugin Validation ===\n");
 console.log(`Manifest:       ${stats.manifest ? "OK" : "MISSING"}${stats.manifestName ? ` (${stats.manifestName} v${stats.manifestVersion})` : ""}`);
 console.log(`Agents:         ${stats.agents} files`);
 console.log(`Commands:       ${stats.commands} files`);
 console.log(`Skills:         ${stats.skills} dirs`);
 console.log(`Taxonomy:       ${stats.taxonomyAgents} agents in channel-taxonomy.json`);
+
+if (runSolverEvals) {
+  const passed = solverResults.filter((r) => r.allPass).length;
+  const total = solverResults.length;
+  console.log(`Solver evals:   ${passed}/${total} passing`);
+  for (const r of solverResults) {
+    const tag = r.allPass ? "PASS" : "FAIL";
+    const details =
+      r.solverStatus === "infeasible"
+        ? `unsat-core=[${(r.unsatCore || []).join(",")}]`
+        : `obj=${r.solverObjective}, greedy=${r.greedyObjective}, time=${r.solveTimeMs}ms`;
+    console.log(`  ${tag}  ${r.file}: ${details}`);
+  }
+}
 
 if (warnings.length > 0) {
   console.log(`\nWarnings (${warnings.length}):`);

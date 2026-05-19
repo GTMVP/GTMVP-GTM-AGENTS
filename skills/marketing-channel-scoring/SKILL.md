@@ -1,6 +1,6 @@
 ---
 name: marketing-channel-scoring
-description: Use when ranking marketing channels for a specific brand and ICP using the 28-channel taxonomy in this plugin. Outputs a scored channel-mix recommendation with rationale per channel, dependencies, and a sequenced rollout plan. Cited by the channel-scorer agent and /channel-score slash command. Reads data/channel-taxonomy.json.
+description: Use when ranking marketing channels for a specific brand and ICP using the 28-channel taxonomy in this plugin. Outputs a scored channel-mix recommendation with rationale per channel, dependencies, a sequenced rollout plan, and a provably-optimal monthly budget allocation via the solver-z3 MCP server. Cited by the channel-scorer agent and /channel-score slash command. Reads data/channel-taxonomy.json.
 ---
 
 # Marketing Channel Scoring
@@ -105,9 +105,55 @@ After per-channel scoring, apply these portfolio rules:
     "dependencyOrderingValid": true,
     "warnings": []
   },
+  "optimalAllocation": {
+    "status": "optimal",
+    "monthlySpendByChannel": {
+      "agent_seo_onpage_001": 6200,
+      "agent_content_blog_010": 11800,
+      "agent_paid_search_015": 9400,
+      "agent_email_drip_021": 6300,
+      "agent_seo_keyword_002": 1300
+    },
+    "totalAllocated": 35000,
+    "monthlyBudget": 35000,
+    "predictedPipelineScore": 2661.6,
+    "greedyBaselineScore": 2344.4,
+    "sensitivities": [
+      { "ifBudgetAdded": 5000, "unlocks": "agent_paid_linkedin_018", "marginalScore": 124.0, "rationale": "Adds fast-feedback paid LinkedIn at min_viable + buffer" },
+      { "ifConstraintRelaxed": "min_compounding", "marginalScore": 12.0, "tradeoff": "Drops $4K from blog into paid_search; no compounding channel = zero defensibility" }
+    ],
+    "activeConstraints": ["budget_cap", "dep_seo_keyword_needs_seo_onpage", "team_capacity", "min_compounding", "min_fast_feedback"],
+    "economicsDefaults": [
+      { "agent_id": "agent_seo_onpage_001", "min_viable_spend_usd": 1500, "max_useful_spend_usd": 8000, "source": "macro_seo_default" }
+    ],
+    "solveTimeMs": 308,
+    "templateUsed": "linear-allocation"
+  },
   "confidence": 0.78
 }
 ```
+
+## Optimal allocation via constraint solver (new, 2026-05-19)
+
+The `optimalAllocation` block is produced by `/channel-score` after the per-channel scoring step, by invoking the `solver-z3` MCP server with the `linear-allocation` template from the `solver-patterns` skill. The block is **provably optimal** under the founder's stated budget, team capacity, max-concentration, and dependency/categorical constraints — meaning no other allocation under those exact constraints achieves a higher objective.
+
+The objective is `Σ score[c] × √spend[c]` (diminishing returns), approximated via 5-breakpoint piecewise-linear sqrt per the `solver-patterns` template.
+
+**When the solver fails (infeasible or timeout):**
+
+`status: "infeasible"` means the founder's hard constraints can't all be satisfied. The `unsatCore[]` field surfaces which constraints conflict (labeled in plain English, e.g. `budget_cap`, `min_compounding`, `dep_seo_keyword_needs_seo_onpage`). The `relaxationSuggestions[]` array provides at most 2 prose suggestions, prioritized by least-disruptive.
+
+`status: "timeout"` means the solver couldn't find an answer in 10 seconds. Treat as functional infeasibility — the constraint set is computationally hard.
+
+In both cases, the `optimalAllocation` block is still present in the output; downstream consumers should check `status` before reading `monthlySpendByChannel`.
+
+**Per-channel economics — where do `min_viable_spend_usd` / `max_useful_spend_usd` come from?**
+
+v1 (current): the founder either supplies a 28-row CSV via the `--economics` flag, or `/channel-score` derives defaults from `default_config.daily_budget × 30` (where present in the taxonomy) and `agent_type` macros (see `commands/channel-score.md` Step 5).
+
+v2 (planned): a curated `data/channel-economics.json` companion file in this plugin, calibrated against B2B SaaS price tiers.
+
+The `economicsDefaults[]` array in the output shows which values were used and where they came from (`founder_supplied` | `taxonomy_default_config` | `macro_<type>_default`), so the founder can audit + override.
 
 ## Quality bar
 
@@ -116,6 +162,8 @@ After per-channel scoring, apply these portfolio rules:
 - **Rollout plan respects dependencies.** Use the taxonomy's `dependencies` field literally.
 - **`portfolioCheck` is mandatory.** This is where common failures (no compounding, no fast feedback, too much paid concurrency) get caught.
 - **`explicitlyDeprioritized` lists at least 5-10 channels.** A recommendation that says "do all 28" is not a recommendation.
+- **`optimalAllocation` block is mandatory when a budget is provided.** Status `optimal` means the dollar allocation is provably best under stated constraints. Status `infeasible` or `timeout` MUST include `unsatCore` and `relaxationSuggestions`.
+- **Solver model construction uses the `linear-allocation` template verbatim.** Do not re-author the Z3 code from prose — copy the template structure and fill slots.
 
 ## Common pitfalls
 

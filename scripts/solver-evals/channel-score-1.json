@@ -1,0 +1,28 @@
+{
+  "_doc": "Balanced 8-channel scenario: medium budget, no infeasibility traps. Solver should produce a meaningfully better allocation than greedy.",
+  "_expected_outcome": "Solver finds an optimal mix that respects dependencies + min compounding + min fast-feedback. Greedy would over-concentrate budget on top-scored items.",
+
+  "option_ids": [
+    "agent_seo_onpage_001",
+    "agent_seo_keyword_002",
+    "agent_seo_interlinking_005",
+    "agent_content_blog_010",
+    "agent_paid_search_015",
+    "agent_paid_linkedin_018",
+    "agent_email_drip_021",
+    "agent_social_organic_025"
+  ],
+  "scores":          [7.5, 7.0, 6.5, 8.0, 7.8, 6.0, 7.2, 5.5],
+  "min_viable":      [1500, 800, 600, 4000, 3000, 5000, 2000, 1500],
+  "max_useful":      [8000, 6000, 4000, 15000, 12000, 20000, 8000, 6000],
+  "total_budget":    35000,
+  "max_concentration_pct": 0.40,
+  "dependencies":    [[2, 0]],
+  "compounding_indices":   [0, 1, 2, 3, 7],
+  "fast_feedback_indices": [4, 5, 6],
+  "team_size": 1,
+
+  "expected_status": "optimal",
+  "_optimum_note": "Calibrated against the canonical linear-allocation template on 2026-05-19. Objective is Σ score[i] × sqrt(spend[i]) post-solve, NOT the solver's PWL-approximated objective. Values are budget-allocation-aware (5+ active channels using ~$35K). If solver returns >5% off this number, the template encoding has drifted.",
+  "expected_optimum": 2661.58
+}

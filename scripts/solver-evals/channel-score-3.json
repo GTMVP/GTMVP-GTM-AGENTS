@@ -1,0 +1,23 @@
+{
+  "_doc": "Infeasibility scenario: budget too tight to satisfy min_compounding + min_fast_feedback simultaneously. Solver should return UNSAT with named labels.",
+  "_expected_outcome": "Unsat core contains 'budget_cap' + (min_compounding OR min_fast_feedback). User-facing message should suggest raising budget or relaxing a floor.",
+
+  "option_ids": [
+    "agent_seo_onpage_001",
+    "agent_paid_linkedin_018",
+    "agent_email_drip_021"
+  ],
+  "scores":          [7.0, 9.5, 7.5],
+  "min_viable":      [3000, 8000, 5000],
+  "max_useful":      [5000, 25000, 7000],
+  "total_budget":    6000,
+  "max_concentration_pct": 0.50,
+  "dependencies":    [],
+  "compounding_indices":   [0],
+  "fast_feedback_indices": [1, 2],
+  "team_size": 1,
+
+  "expected_status": "infeasible",
+  "_optimum_note": "Compounding requires seo_onpage ($3K min). Fast-feedback requires linkedin ($8K) or email ($5K). Cheapest feasible = $3K + $5K = $8K > $6K budget.",
+  "expected_unsat_labels": ["budget_cap"]
+}
