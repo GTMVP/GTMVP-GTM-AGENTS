@@ -1,0 +1,21 @@
+{
+  "description": "Infeasibility — 3 critical threats each needing dedicated priority, but capacity only allows 2 picks",
+  "integration": "swot-priorities",
+  "template": "knapsack",
+  "inputs": {
+    "item_ids": ["fight_regulation", "counter_entry", "fix_tech_debt", "diversify_revenue"],
+    "values": [8, 7, 6, 5],
+    "costs": [6, 5, 7, 4],
+    "total_capacity": 10,
+    "categories": [
+      ["threat_regulation"],
+      ["threat_new_entrant"],
+      ["threat_tech_debt"],
+      ["opportunity_revenue_stream"]
+    ],
+    "must_cover_categories": ["threat_regulation", "threat_new_entrant", "threat_tech_debt"],
+    "max_concurrent": 2
+  },
+  "expected_solver_status": "infeasible",
+  "notes": "3 threats, each covered by exactly 1 unique priority, but max_concurrent=2. Must select all 3 to cover, but can only pick 2. UNSAT."
+}

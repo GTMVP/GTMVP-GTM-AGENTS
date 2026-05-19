@@ -1,0 +1,22 @@
+{
+  "description": "5 candidate responses covering 3 forces above threshold. Find min-cost package.",
+  "integration": "porters-response",
+  "template": "set-cover",
+  "inputs": {
+    "item_ids": ["build_moat", "lock_suppliers", "differentiate", "loyalty_program", "vertical_focus"],
+    "dim_names": ["threat_new_entrants", "bargaining_buyers", "competitive_rivalry"],
+    "coverage": [
+      [0],
+      [0, 1],
+      [1, 2],
+      [1],
+      [0, 2]
+    ],
+    "costs": [15000, 25000, 10000, 8000, 20000],
+    "target_size": null,
+    "min_coverage_per_dim": 1
+  },
+  "expected_all_dims_covered": true,
+  "expected_solver_status": "optimal",
+  "notes": "Min-cost covering set. differentiate(10K) covers buyers+rivalry. build_moat(15K) covers entrants. Total: 25K. Or lock_suppliers(25K) + differentiate(10K) = 35K covers all 3 but costs more. Optimal: build_moat + differentiate = 25K."
+}

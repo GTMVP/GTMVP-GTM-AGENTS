@@ -1,0 +1,22 @@
+{
+  "description": "Tight capacity — only 8h/week, 2 critical threats, forces painful tradeoffs",
+  "integration": "swot-priorities",
+  "template": "knapsack",
+  "inputs": {
+    "item_ids": ["address_pricing", "build_moat", "expand_market", "counter_competitor", "improve_docs"],
+    "values": [10, 7, 6, 9, 4],
+    "costs": [5, 6, 4, 5, 3],
+    "total_capacity": 8,
+    "categories": [
+      ["threat_pricing_compression"],
+      ["weakness_no_moat"],
+      ["opportunity_new_vertical"],
+      ["threat_competitor_launch", "threat_pricing_compression"],
+      ["weakness_docs_quality"]
+    ],
+    "must_cover_categories": ["threat_pricing_compression", "threat_competitor_launch"],
+    "max_concurrent": 2
+  },
+  "expected_solver_status": "optimal",
+  "notes": "With 8h and max_concurrent=2: counter_competitor(9,5h) covers both threats. Best companion: improve_docs(4,3h) or the system picks address_pricing(10,5h) but that busts capacity with counter_competitor. Expected: counter_competitor + improve_docs = 13 value, 8h."
+}

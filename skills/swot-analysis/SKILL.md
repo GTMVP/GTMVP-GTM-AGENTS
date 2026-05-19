@@ -43,8 +43,30 @@ Work in this order:
 1. **Establish data sufficiency.** What's known? What's assumed? What's missing? Set `dataQuality` accordingly: `excellent` (all sources), `good` (most), `fair` (some), `poor` (mostly inference).
 2. **Pass through each quadrant once with evidence.** Each item must cite the source: brand intelligence, competitor analysis, market data, observed channel performance. Items without evidence are downgraded or dropped.
 3. **Identify cross-quadrant tensions.** Where does a Strength enable an Opportunity? Where does a Weakness magnify a Threat? These are the strategic levers.
-4. **Rank strategic priorities.** From the cross-quadrant analysis, produce 3-5 priorities ranked by impact × feasibility. Each priority must answer: what to do, why, and what to stop doing.
-5. **Set confidence.** Not all SWOTs are equal. State your confidence (0-1) and why.
+4. **Rank strategic priorities.** From the cross-quadrant analysis, produce 5-8 candidate priorities ranked by impact × feasibility. Each priority must answer: what to do, why, and what to stop doing. Include estimated `hours_per_week` cost per priority.
+5. **Optimize priority selection (Z3 solver).** Use the `knapsack` template from `skills/solver-patterns` (Template 2) to select the optimal subset of priorities under founder capacity constraints.
+
+   **Model inputs (derived from Step 4 candidates):**
+   - `item_ids`: each candidate priority's ID
+   - `values[i]`: `impact_score × swot_coverage_weight` — where impact_score is {high=3, medium=2, low=1} and swot_coverage_weight counts how many S/W/O/T items the priority addresses
+   - `costs[i]`: estimated `hours_per_week` per priority (from Step 4)
+   - `total_capacity`: founder's weekly hours available for strategic work (ask if not provided; default 15)
+   - `categories[i]`: list of SWOT quadrant tags per priority (e.g. `["threat_pricing_compression", "weakness_no_retention"]`)
+   - `must_cover_categories`: all critical Threats (items scored "high" in threats quadrant) — at least one selected priority must address each
+   - `max_concurrent`: default 3 (avoids context-switching for a solo founder)
+
+   **Solver flow (per `skills/solver-patterns` §2 and `skills/gtm-output-schemas` §8):**
+   1. `clear_model` — fresh session
+   2. Build knapsack model from candidate priorities
+   3. `add_item` calls per Template 2
+   4. `solve_model` with 10s timeout
+   5. On SAT: the selected priorities are the optimal set under founder capacity
+   6. On UNSAT: founder capacity is too low to address all critical threats — report which threats are uncovered and recommend capacity expansion or threat acceptance
+   7. `clear_model` — cleanup
+
+   **Output enrichment.** For selected priorities: show hours allocated and remaining capacity. For dropped priorities: show explicit "freed hours" and which SWOT items go unaddressed. Flag uncovered SWOT items as accepted risks.
+
+6. **Set confidence.** Not all SWOTs are equal. State your confidence (0-1) and why.
 
 ## Output schema
 
@@ -78,9 +100,22 @@ Work in this order:
       "rationale": "Why this priority is ranked here, citing the SWOT evidence",
       "impact": "high | medium | low",
       "effort": "high | medium | low",
+      "hoursPerWeek": 5,
+      "swotItemsAddressed": ["threat_pricing_compression", "weakness_no_retention"],
       "stopDoing": "What this priority explicitly de-prioritizes (a SWOT without trade-offs is a wishlist)"
     }
   ],
+  "optimizedSelection": {
+    "selectedPriorities": ["priority_id_1", "priority_id_2", "priority_id_3"],
+    "droppedPriorities": [
+      { "id": "priority_id_4", "freedHours": 8, "uncoveredSwotItems": ["opportunity_ai_tooling"] }
+    ],
+    "totalHoursAllocated": 14,
+    "remainingCapacity": 1,
+    "uncoveredThreats": [],
+    "acceptedRisks": ["opportunity_ai_tooling"],
+    "solverStatus": "optimal"
+  },
   "confidence": 0.85,
   "dataQuality": "excellent | good | fair | poor"
 }
@@ -92,6 +127,8 @@ Work in this order:
 - **Every item is evidence-anchored.** No bare assertions.
 - **Strategic priorities have a `stopDoing` field.** A SWOT without an explicit trade-off is wishful thinking.
 - **`dataQuality: 'fair'` or worse triggers a recommendation to gather more intel before acting.** Bad data + confident SWOT = expensive strategy mistakes.
+- **Solver selection respects critical threat coverage.** Every high-impact Threat must be addressed by at least one selected priority. If the solver returns UNSAT, surface which threats are uncoverable at current capacity.
+- **Dropped priorities are explicit.** The `droppedPriorities` array isn't a graveyard — it's a conscious decision log with freed hours and accepted risk items.
 
 ## Common pitfalls
 

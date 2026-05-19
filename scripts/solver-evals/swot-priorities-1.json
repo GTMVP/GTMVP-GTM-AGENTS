@@ -1,0 +1,23 @@
+{
+  "description": "6 candidate priorities, 15h/week capacity, 2 critical threats to cover. Clear optimal subset exists.",
+  "integration": "swot-priorities",
+  "template": "knapsack",
+  "inputs": {
+    "item_ids": ["expand_enterprise", "build_retention", "launch_ai_feature", "hire_sdr", "rebrand", "fix_onboarding"],
+    "values": [9, 8, 6, 5, 3, 7],
+    "costs": [6, 5, 4, 8, 3, 4],
+    "total_capacity": 15,
+    "categories": [
+      ["opportunity_enterprise_growth"],
+      ["weakness_no_retention", "threat_churn_rate"],
+      ["opportunity_ai_tooling"],
+      ["weakness_pipeline_thin"],
+      ["weakness_brand_perception"],
+      ["weakness_activation_rate", "threat_churn_rate"]
+    ],
+    "must_cover_categories": ["threat_churn_rate"],
+    "max_concurrent": 3
+  },
+  "expected_solver_status": "optimal",
+  "notes": "Optimal should pick 3 priorities covering threat_churn_rate (via build_retention or fix_onboarding) and maximizing total value within 15h. Expected: expand_enterprise(9,6h) + build_retention(8,5h) + fix_onboarding(7,4h) = 24 value, 15h exactly."
+}

@@ -1,0 +1,16 @@
+{
+  "description": "Tight capacity forces some initiatives to be dropped — solver maximizes strategic value",
+  "integration": "tam-horizons",
+  "template": "scheduling-with-deps",
+  "inputs": {
+    "init_ids": ["quick_a", "quick_b", "medium_c", "medium_d", "long_e"],
+    "values": [5, 3, 10, 8, 15],
+    "effort": [4, 3, 6, 5, 8],
+    "horizons": ["0_3mo", "3_12mo", "12mo_plus"],
+    "horizon_capacity": [4, 6, 8],
+    "dependencies": [[2, 0], [4, 2]]
+  },
+  "expected_solver_status": "optimal",
+  "expected_all_scheduled": false,
+  "notes": "Total capacity=18, total effort=26. Must drop some. Dependency chain: quick_a->medium_c->long_e (value=5+10+15=30, effort=4+6+8=18). This chain alone fills all capacity. Solver should pick the chain and drop quick_b(3,3) and medium_d(8,5)."
+}

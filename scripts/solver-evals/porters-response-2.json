@@ -1,0 +1,20 @@
+{
+  "description": "All 5 forces above threshold, tight budget, can't cover all — tests UNSAT path",
+  "integration": "porters-response",
+  "template": "set-cover",
+  "inputs": {
+    "item_ids": ["resp_a", "resp_b", "resp_c"],
+    "dim_names": ["threat_entrants", "supplier_power", "buyer_power", "substitutes", "rivalry"],
+    "coverage": [
+      [0, 1],
+      [2, 3],
+      [4]
+    ],
+    "costs": [50000, 40000, 30000],
+    "target_size": 2,
+    "min_coverage_per_dim": 1
+  },
+  "expected_all_dims_covered": false,
+  "expected_solver_status": "infeasible",
+  "notes": "3 responses, each covering distinct forces. Need all 3 for full coverage, but target_size=2. UNSAT."
+}

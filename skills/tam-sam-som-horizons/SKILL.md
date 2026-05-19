@@ -70,7 +70,26 @@ The heart of the skill. Each horizon has its own decision rules:
 | **Medium plays** | 3-12 months | Requires investment but is strategically defensible | Launch a new product module; enter one adjacent vertical; build out a partner channel |
 | **Long bets** | 12+ months | Transformative, harder to reverse, higher payoff | Platform pivot; M&A; new business model; new geography |
 
-Each opportunity gets `impact` (high/medium/low) and `effort` (high/medium/low) tags. Top 3 priorities surface from the impact-effort grid.
+Each opportunity gets `impact` (high/medium/low), `effort` (high/medium/low), `capacity_cost` (person-months), and `prerequisite_ids` (list of initiative IDs that must complete before this one can start) tags.
+
+**Solver-backed scheduling (Z3, per `skills/solver-patterns` Template 5).** After generating the candidate initiatives across all three horizons, use the `scheduling-with-deps` template to produce a feasible schedule that respects:
+- Dependency DAG — no initiative starts before its prerequisites complete
+- Capacity per horizon — total person-months per horizon ≤ available capacity
+- Horizon assignments — quick-wins in 0-3mo, medium plays in 3-12mo, long bets in 12mo+
+- Maximize cumulative strategic value (Σ impact_score × horizon_weight)
+
+**Solver flow (per `skills/solver-patterns` §5 and `skills/gtm-output-schemas` §8):**
+1. `clear_model` — fresh session
+2. Build initiative nodes with capacity costs, dependencies, and horizon assignments
+3. `add_item` calls per Template 5
+4. `solve_model` with 10s timeout
+5. On SAT: extract the scheduled order with critical-path identification
+6. On UNSAT: capacity too tight for all dependencies — report bottleneck initiatives and suggest deferring lowest-value items
+7. `clear_model` — cleanup
+
+**Critical-path output.** Identify which initiatives are bottlenecks — removing them delays the most downstream initiatives. Surface these as "strategic-path-critical" items that deserve extra resources or de-risking.
+
+Top 3 priorities surface from the solver's optimal schedule, not just the impact-effort grid.
 
 ### 5. Customer Journey — Map the funnel
 
@@ -115,14 +134,26 @@ The full output mirrors the donor brand-strategist schema — see `gtm-output-sc
   "productServices": { /* see §6.2 */ },
   "strategicOpportunities": {
     "topPriorities": [
-      { "priority": "...", "reasoning": "...", "impact": "high|medium|low", "effort": "high|medium|low" }
+      { "priority": "...", "reasoning": "...", "impact": "high|medium|low", "effort": "high|medium|low", "capacityCost": 2.0, "prerequisiteIds": [] }
     ],
     "quickWins": ["0-3 month opportunity 1", "..."],
     "mediumTerm": ["3-12 month opportunity 1", "..."],
     "longTerm": ["12+ month transformative opportunity 1", "..."],
     "untappedSegments": ["..."],
     "partnershipOpportunities": ["..."],
-    "riskFactors": ["..."]
+    "riskFactors": ["..."],
+    "scheduledRoadmap": {
+      "horizonAssignments": {
+        "horizon_0_3mo": [{"id": "init_1", "capacityCost": 1.5}],
+        "horizon_3_12mo": [{"id": "init_2", "capacityCost": 3.0, "blockedBy": ["init_1"]}],
+        "horizon_12mo_plus": [{"id": "init_3", "capacityCost": 4.0, "blockedBy": ["init_2"]}]
+      },
+      "criticalPath": ["init_1", "init_2", "init_3"],
+      "bottleneckInitiatives": ["init_1"],
+      "deferredInitiatives": [{"id": "init_4", "reason": "capacity_overflow", "freedCapacity": 2.0}],
+      "totalCapacityUsed": { "horizon_0_3mo": 1.5, "horizon_3_12mo": 3.0, "horizon_12mo_plus": 4.0 },
+      "solverStatus": "optimal"
+    }
   },
   "customerJourney": { /* see §6.2 */ },
   "brandMessaging": { /* see §6.2 */ },

@@ -1,0 +1,16 @@
+{
+  "description": "Infeasibility — dependency chain too long for available horizons + capacity",
+  "integration": "tam-horizons",
+  "template": "scheduling-with-deps",
+  "inputs": {
+    "init_ids": ["phase1", "phase2", "phase3", "phase4"],
+    "values": [5, 10, 15, 20],
+    "effort": [4, 5, 6, 7],
+    "horizons": ["0_3mo", "3_12mo"],
+    "horizon_capacity": [4, 5],
+    "dependencies": [[1, 0], [2, 1], [3, 2]]
+  },
+  "expected_solver_status": "optimal",
+  "expected_some_dropped": true,
+  "notes": "Chain: phase1(4)->phase2(5)->phase3(6)->phase4(7). Only 2 horizons with capacity 4+5=9. Chain needs 4+5+6+7=22. Solver must drop lowest-value items. Best: phase1(4,5) in 0_3mo + phase2(5,10) in 3_12mo = 15 value, 9 effort. phase3+phase4 dropped. Actually phase1 effort=4 fits 0_3mo(4). phase2 effort=5 fits 3_12mo(5). That's exactly capacity. Total value=15."
+}

@@ -256,6 +256,12 @@ if (runSolverEvals) {
       details = `minDist=${r.minDist}, ${details}`;
     } else if (r.selectedCompetitors) {
       details = `selected=${r.selectedCompetitors.length}, uncovered=${(r.uncoveredDimensions || []).length}, ${details}`;
+    } else if (r.selectedPriorities) {
+      details = `selected=${r.selectedPriorities.length}, value=${r.totalValue}, hours=${r.totalHoursAllocated}, ${details}`;
+    } else if (r.schedule) {
+      const scheduled = Object.values(r.schedule).flat().length;
+      const dropped = (r.dropped || []).length;
+      details = `scheduled=${scheduled}, dropped=${dropped}, value=${r.totalValue}, ${details}`;
     }
     console.log(`  ${tag}  ${r.file}: ${details}`);
   }

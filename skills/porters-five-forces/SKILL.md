@@ -137,10 +137,44 @@ How intense is rivalry among existing competitors?
       "Strategic recommendation 3"
     ]
   },
+  "responsePackage": {
+    "selectedResponses": ["response_id_1", "response_id_2"],
+    "coverageMap": {
+      "threatOfNewEntrants": ["response_id_1"],
+      "bargainingPowerOfBuyers": ["response_id_1", "response_id_2"],
+      "competitiveRivalry": ["response_id_2"]
+    },
+    "totalCost": 28000,
+    "uncoveredForces": [],
+    "singleCoverRisks": ["threatOfNewEntrants"],
+    "solverStatus": "optimal"
+  },
   "confidence": 0.75,
   "unknowns": ["What you couldn't assess due to missing data"]
 }
 ```
+
+## Strategic response packaging (Z3 solver)
+
+After scoring the five forces, generate N candidate strategic responses (typically 5-10). Each response:
+- Addresses 1-3 forces (reduces their score)
+- Has an estimated cost (dollar or effort)
+- Has an expected impact per force addressed
+
+Use the `set-cover` template from `skills/solver-patterns` (Template 4) to find the min-cost package of responses that brings every force scored ≥ threshold (default: ≥ 6.0, i.e. "medium-high" or above) below that threshold.
+
+**Solver flow (per `skills/solver-patterns` §4 and `skills/gtm-output-schemas` §8):**
+1. `clear_model` — fresh session
+2. Define forces-to-cover: those with score ≥ threshold
+3. Build coverage matrix: N candidate responses × M forces-above-threshold
+4. Costs = estimated dollar cost per response
+5. `add_item` calls per Template 4 (set-cover, min-cost variant — no target_size cap)
+6. `solve_model` with 10s timeout
+7. On SAT: the selected responses are the cheapest defensive package
+8. On UNSAT: no combination of candidates can defang all strong forces — report which forces remain above threshold and recommend developing new response options
+9. `clear_model` — cleanup
+
+This closes the loop from "here's your five-forces score" to "here's the cheapest package of strategic moves that addresses every dangerous force."
 
 ## Scoring guide
 
