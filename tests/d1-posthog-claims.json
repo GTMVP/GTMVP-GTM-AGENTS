@@ -1,0 +1,114 @@
+[
+  {
+    "claimId": "competitor_mapper_agent.claim_001",
+    "atomicClaim": "Datadog LLM Observability (DA 90) is the #1 cross-shop competitor for LLM Analytics buyers; 60% of enterprise leads will evaluate both within 12 months",
+    "weight": 8,
+    "confidence": 0.75,
+    "incompatibleWithClaimIds": []
+  },
+  {
+    "claimId": "competitor_mapper_agent.claim_002",
+    "atomicClaim": "Amplitude is no longer the primary product-analytics competitor for PostHog's PLG ICP — only 22% of YC-stage startups consider Amplitude vs PostHog in 2026",
+    "weight": 6,
+    "confidence": 0.7,
+    "incompatibleWithClaimIds": []
+  },
+  {
+    "claimId": "competitor_mapper_agent.claim_003",
+    "atomicClaim": "Mixpanel + LaunchDarkly bundle (combined ARR $40K/yr) is the displaceable competitor stack; 35% win rate for PostHog in head-to-head deals under $50K ACV",
+    "weight": 7,
+    "confidence": 0.8,
+    "incompatibleWithClaimIds": []
+  },
+  {
+    "claimId": "competitor_mapper_agent.claim_004",
+    "atomicClaim": "Sentry is NOT a competitor for Error Tracking — overlap is <15% and pursuing the head-to-head wastes 2 quarters of positioning effort",
+    "weight": 5,
+    "confidence": 0.7,
+    "incompatibleWithClaimIds": []
+  },
+  {
+    "claimId": "brand_strategist_agent.claim_001",
+    "atomicClaim": "Expanding into LLM Analytics widens SAM by $1.2B by 2027 and represents the highest-leverage quick-win horizon (0-6 months)",
+    "weight": 9,
+    "confidence": 0.7,
+    "incompatibleWithClaimIds": ["positioning_sharpener_agent.claim_001"]
+  },
+  {
+    "claimId": "brand_strategist_agent.claim_002",
+    "atomicClaim": "Data Warehouse product is a defensive moat play, not a growth driver — keep at <15% R&D investment and price it to retain rather than acquire",
+    "weight": 5,
+    "confidence": 0.6,
+    "incompatibleWithClaimIds": []
+  },
+  {
+    "claimId": "brand_strategist_agent.claim_003",
+    "atomicClaim": "Launch a paid Teams tier at $450/month flat with usage caps to capture the 50-200 FTE segment currently churning to Amplitude on procurement — 120+ accounts within 12 months",
+    "weight": 6,
+    "confidence": 0.6,
+    "incompatibleWithClaimIds": []
+  },
+  {
+    "claimId": "audience_analyzer_agent.claim_001",
+    "atomicClaim": "The 'product engineer at YC-stage startup' persona (10-50 employee SaaS) drives 70% of net-new logos and converts at 4.5x the rate of enterprise persona",
+    "weight": 8,
+    "confidence": 0.85,
+    "incompatibleWithClaimIds": ["audience_analyzer_agent.claim_002"]
+  },
+  {
+    "claimId": "audience_analyzer_agent.claim_002",
+    "atomicClaim": "Pivoting messaging toward AI/ML engineers at 200+ FTE companies will lift expansion revenue by 30% within 12 months — current ICP underweights this segment",
+    "weight": 7,
+    "confidence": 0.6,
+    "incompatibleWithClaimIds": ["audience_analyzer_agent.claim_001", "channel_scorer_agent.claim_001"]
+  },
+  {
+    "claimId": "audience_analyzer_agent.claim_003",
+    "atomicClaim": "65% of free-tier accounts convert to paid within 9 months when they activate 2+ products — current activation lift program should target this multi-product behavior",
+    "weight": 7,
+    "confidence": 0.8,
+    "incompatibleWithClaimIds": []
+  },
+  {
+    "claimId": "positioning_sharpener_agent.claim_001",
+    "atomicClaim": "Sharpen positioning to 'the open-source product analytics platform for engineers' — dropping LLM Analytics from homepage hero will lift signup conversion by 18% within 90 days",
+    "weight": 7,
+    "confidence": 0.7,
+    "incompatibleWithClaimIds": ["brand_strategist_agent.claim_001"]
+  },
+  {
+    "claimId": "positioning_sharpener_agent.claim_002",
+    "atomicClaim": "Lead with '98% use PostHog for free' as the primary anti-enterprise wedge against Datadog/Amplitude in all paid-ad creative — expected 25% CTR lift",
+    "weight": 6,
+    "confidence": 0.75,
+    "incompatibleWithClaimIds": []
+  },
+  {
+    "claimId": "positioning_sharpener_agent.claim_003",
+    "atomicClaim": "'All-in-one platform' messaging tests 32% better than 'best-of-breed' against the YC-stage ICP based on 6 comparable PLG SaaS positioning tests",
+    "weight": 6,
+    "confidence": 0.65,
+    "incompatibleWithClaimIds": []
+  },
+  {
+    "claimId": "channel_scorer_agent.claim_001",
+    "atomicClaim": "Allocate 45% of paid budget to LinkedIn ads targeting senior engineering titles at $5K-$25K MRR companies — expected CAC $180, payback under 11 months",
+    "weight": 7,
+    "confidence": 0.7,
+    "incompatibleWithClaimIds": ["audience_analyzer_agent.claim_002", "channel_scorer_agent.claim_002"]
+  },
+  {
+    "claimId": "channel_scorer_agent.claim_002",
+    "atomicClaim": "Allocate 60% of paid budget to Reddit + dev-podcast sponsorships (r/programming, r/SaaS, Software Engineering Daily) — expected CAC $95, 38% lower than LinkedIn for the PLG ICP",
+    "weight": 8,
+    "confidence": 0.65,
+    "incompatibleWithClaimIds": ["channel_scorer_agent.claim_001"]
+  },
+  {
+    "claimId": "channel_scorer_agent.claim_003",
+    "atomicClaim": "SEO content investment in 'vs Amplitude / vs Mixpanel / vs Datadog' comparison pages will generate 800+ MQLs/month within 6 months at $12 blended CAC",
+    "weight": 8,
+    "confidence": 0.8,
+    "incompatibleWithClaimIds": []
+  }
+]

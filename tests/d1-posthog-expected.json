@@ -1,0 +1,28 @@
+{
+  "brand": "posthog.com",
+  "satisfiable": true,
+  "status": "optimal",
+  "selected_claim_ids": [
+    "competitor_mapper_agent.claim_001",
+    "competitor_mapper_agent.claim_002",
+    "competitor_mapper_agent.claim_003",
+    "competitor_mapper_agent.claim_004",
+    "brand_strategist_agent.claim_002",
+    "brand_strategist_agent.claim_003",
+    "audience_analyzer_agent.claim_001",
+    "audience_analyzer_agent.claim_003",
+    "positioning_sharpener_agent.claim_001",
+    "positioning_sharpener_agent.claim_002",
+    "positioning_sharpener_agent.claim_003",
+    "channel_scorer_agent.claim_002",
+    "channel_scorer_agent.claim_003"
+  ],
+  "dropped_claim_ids": [
+    "brand_strategist_agent.claim_001",
+    "audience_analyzer_agent.claim_002",
+    "channel_scorer_agent.claim_001"
+  ],
+  "total_weight": 632,
+  "arithmetic": "60 + 42 + 56 + 35 + 30 + 36 + 68 + 56 + 49 + 45 + 39 + 52 + 64 = 632",
+  "maxsat_vs_greedy_proof": "Greedy picks brand.claim_001 (EW=63) first then must drop positioning.claim_001 (EW=49) for conflict resolution. MaxSAT drops brand.claim_001 alone to keep BOTH audience.claim_001 (EW=68) AND positioning.claim_001 (EW=49), proving conflict-topology reasoning beyond per-claim score."
+}
