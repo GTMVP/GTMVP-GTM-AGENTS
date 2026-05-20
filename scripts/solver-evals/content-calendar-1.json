@@ -1,0 +1,30 @@
+{
+  "description": "Easy SAT — D=14, P=7, K=5. Generous cadence (sum=20), moderate pillar bounds, permissive fit, short diversity windows. Solver finds a calendar honoring all constraints; objective lands at the pillar_max-driven ceiling of 70.",
+  "integration": "content-calendar",
+  "template": "assignment-with-diversity",
+  "inputs": {
+    "D": 14,
+    "P": 7,
+    "K": 5,
+    "platform_names": ["LinkedIn", "X", "Instagram", "YouTube", "TikTok", "Email", "Blog"],
+    "pillar_names": ["pillar_1", "pillar_2", "pillar_3", "pillar_4", "pillar_5"],
+    "cadence": [4, 7, 3, 1, 2, 2, 1],
+    "pillar_fit": [
+      [1, 1, 1, 1, 1, 1, 1],
+      [1, 1, 1, 1, 1, 1, 1],
+      [1, 1, 0, 0, 1, 1, 1],
+      [1, 1, 1, 1, 1, 0, 1],
+      [1, 1, 1, 0, 0, 1, 1],
+      [0, 0, 1, 1, 1, 0, 0]
+    ],
+    "pillar_min": [2, 1, 2, 1, 1],
+    "pillar_max": [6, 4, 5, 4, 3],
+    "min_gap": [3, 2, 3, 7, 3, 5, 7],
+    "pillar_weight": [5, 4, 3, 2, 1]
+  },
+  "expected_solver_status": "satisfied",
+  "expected_objective": 70,
+  "_optimum_note": "Pillar_max-bound ceiling: 6*5 + 4*4 + 5*3 + 4*2 + 3*1 = 70. Confirmed end-to-end in the E2 shipping validation run on 2026-05-09.",
+  "_greedy_note": "Constraint-blind greedy (highest pillar_weight first, no fit/gap/coverage) would assign pillar_1 to every slot until exhausting pillar_max=6, then pillar_2 until 4, etc — totals 6*5+4*4+5*3+4*2+3*1=70 in objective alone but VIOLATES min_gap on platforms with cadence > min_gap (e.g. X has cadence=7 and min_gap=2; pillar_1 can appear at most ceil(14/2)=7 times spaced — but it can't appear 6 times AND honor fit constraints on YouTube/Instagram). Greedy returns a non-feasible schedule.",
+  "_diversity_bounds": "min_gap=3 means same pillar must be 3+ days apart on platforms 1,3,5. min_gap=2 (X) is the easiest. min_gap=7 (YouTube/Blog) effectively limits same-pillar to 2 appearances across D=14."
+}

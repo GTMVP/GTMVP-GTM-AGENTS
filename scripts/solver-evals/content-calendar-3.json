@@ -1,0 +1,28 @@
+{
+  "description": "Intentional UNSAT — D=7, P=3, K=5. sum(cadence)=5 < sum(pillar_min)=7. Solver must return satisfiable=false. Mirrors channel-score-3 and swot-priorities-3 negative-test pattern.",
+  "integration": "content-calendar",
+  "template": "assignment-with-diversity",
+  "inputs": {
+    "D": 7,
+    "P": 3,
+    "K": 5,
+    "platform_names": ["LinkedIn", "X", "Email"],
+    "pillar_names": ["pillar_1", "pillar_2", "pillar_3", "pillar_4", "pillar_5"],
+    "cadence": [2, 2, 1],
+    "pillar_fit": [
+      [1, 1, 1],
+      [1, 1, 1],
+      [1, 1, 1],
+      [1, 1, 1],
+      [1, 1, 1],
+      [1, 1, 1]
+    ],
+    "pillar_min": [2, 2, 1, 1, 1],
+    "pillar_max": [3, 3, 3, 3, 3],
+    "min_gap": [2, 2, 2],
+    "pillar_weight": [5, 4, 3, 2, 1]
+  },
+  "expected_solver_status": "unsatisfiable",
+  "_unsat_note": "sum(cadence) = 2+2+1 = 5 total post slots. sum(pillar_min) = 2+2+1+1+1 = 7 required pillar appearances. 5 < 7 makes the floor infeasible regardless of fit/gap. Solver must detect and return satisfiable=false. The runner treats this as PASS because UNSAT is the expected outcome — mirrors channel-score-3 (budget too tight) and swot-priorities-3 (effort floor exceeds capacity) negative-test pattern.",
+  "_diagnosis": "Per Template 7 infeasibility diagnosis #1 in solver-patterns/SKILL.md: 'sum(cadence) < sum(pillar_min) — too few posts to hit the minimum-pillar floor. Raise cadence or lower pillar_min.' This scenario verifies that the model correctly surfaces the infeasibility instead of returning a partial schedule."
+}

@@ -1,0 +1,28 @@
+{
+  "description": "Tight SAT — D=7, P=4, K=4. Low cadence (sum=8), tight pillar_min (sum=4 vs sum_cadence=8), aggressive diversity (min_gap=4 everywhere). Solver finds the narrow feasible region.",
+  "integration": "content-calendar",
+  "template": "assignment-with-diversity",
+  "inputs": {
+    "D": 7,
+    "P": 4,
+    "K": 4,
+    "platform_names": ["LinkedIn", "X", "Email", "YouTube"],
+    "pillar_names": ["pillar_1", "pillar_2", "pillar_3", "pillar_4"],
+    "cadence": [3, 2, 2, 1],
+    "pillar_fit": [
+      [1, 1, 1, 1],
+      [1, 1, 1, 1],
+      [1, 1, 1, 0],
+      [1, 1, 0, 1],
+      [1, 0, 1, 1]
+    ],
+    "pillar_min": [1, 1, 1, 1],
+    "pillar_max": [4, 3, 3, 3],
+    "min_gap": [4, 4, 4, 4],
+    "pillar_weight": [6, 4, 3, 2]
+  },
+  "expected_solver_status": "satisfied",
+  "expected_objective": 37,
+  "_optimum_note": "Empirically confirmed on 2026-05-20: solver returns objective=37 (e.g. 4*pillar_1 + 2*pillar_2 + 1*pillar_3 + 1*pillar_4 = 24+8+3+2=37). Tight because sum(pillar_min)=4 and sum(cadence)=8 — half the slots must spread across all four pillars; min_gap=4 across D=7 limits each pillar to 2 appearances per platform.",
+  "_diversity_bounds": "min_gap=4 across D=7 means each pillar can appear at most 2 times per platform (days 1 and 5, or 2 and 6, etc.). With 4 platforms × 2 max-per-platform = 8 max appearances per pillar globally, but pillar_max caps tighter."
+}
