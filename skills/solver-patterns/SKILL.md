@@ -1,6 +1,6 @@
 ---
 name: solver-patterns
-description: Reusable constraint-solver templates for GTMVP agents that produce provably-optimal recommendations. Eight templates — five Z3 (linear-allocation, knapsack, max-min-distance, set-cover, scheduling-with-deps) for solver-z3, one PySAT MaxSAT (maxsat-claim-synthesis) for solver-maxsat in /gtm-audit D1, one MiniZinc assignment-with-diversity for solver-mzn in /content-calendar E2, and one Z3 quantifier-alternation (manual skolemization, predicate 4b feature-coverage moat) for solver-z3 in /war-game E1. Mandates labeling, fresh-model, timeout, UNSAT-explanation, and piecewise-linear conventions.
+description: Reusable constraint-solver templates for GTMVP agents that produce provably-optimal recommendations. Eight templates — five Z3 (linear-allocation, knapsack, max-min-distance, set-cover, scheduling-with-deps) for solver-z3, one PySAT MaxSAT (maxsat-claim-synthesis) for solver-maxsat in /gtm-audit D1, one MiniZinc assignment-with-diversity for solver-mzn in /content-calendar E2, and one Z3 quantifier-alternation (manual skolemization, predicates 4a/4b/4c — market-share defensibility, feature-coverage moat, channel-economics resilience) for solver-z3 in /war-game E1. Mandates labeling, fresh-model, timeout, UNSAT-explanation, and piecewise-linear conventions.
 ---
 
 # Solver Patterns
@@ -653,13 +653,132 @@ Pre-check these in the command flow BEFORE building the model, and surface the g
 
 ## Template 8: Quantifier alternation via manual skolemization (E1 — `/war-game`)
 
-**Use cases.** E1 competitor war-gaming. Any "∃ my_moves ∀ their_responses : success_predicate(my_moves, their_responses)" problem — i.e. find a move I can make such that **for every** competitor counter-move, my position still wins. v1 ships with **predicate 4b — feature-coverage moat** (do I dominate a weighted feature-coverage score regardless of what they ship next?). The same template extends to predicate 4a (market-share defensibility) and 4c (channel-economics resilience) by swapping the per-combo scoring function — the skolemization scaffold stays identical.
+**Use cases.** E1 competitor war-gaming. Any "∃ my_moves ∀ their_responses : success_predicate(my_moves, their_responses)" problem — i.e. find a move I can make such that **for every** competitor counter-move, my position still wins. Three predicates ship under this template, one per dominant demo question: **4a** (market-share defensibility — "is my pricing move share-durable?"), **4b** (feature-coverage moat — "is my feature lead durable?"), and **4c** (channel-economics resilience — "does my channel bet survive a counter-investment?"). The skolemization scaffold stays identical across all three — only the per-combo success predicate changes.
 
 **Solver.** `mcp__solver-z3__*` (NOT solver-maxsat, NOT solver-mzn). Z3's ground SAT path is used **after** manual skolemization — the universal quantifier is enumerated in Python over the Cartesian product of competitor responses, NOT encoded via `Z3.ForAll`. This is the §8c mitigation from the E1 scoping doc: it preserves full unsat-core explainability that Z3's native quantifier handling cannot give.
 
 **Why manual skolemization over `ForAll`.** Native Z3 `ForAll` has limited unsat-core support and can hang on non-trivial formulas. Enumerating combos in Python and asserting them one-at-a-time via `assert_and_track(..., label)` recovers explainability (each combo becomes a labeled constraint, so UNSAT cores name the exact kill scenario), keeps the solver on its fast ground-SAT path, and makes "why didn't this move work?" answerable in plain English. Trade-off: combos blow up as `R^N_competitors`. v1 caps at 3–5 competitors × 3–5 responses each (max ~3125 combos — well within solver headroom).
 
-**Slots to fill.**
+**Cross-predicate summary.**
+
+| Predicate | Best for | Founder data lift | SMT difficulty |
+|---|---|---|---|
+| **4a** Market-share defensibility | Established markets, pricing moves | Moderate — needs share baseline + sensitivity table | Low (linear arithmetic) |
+| **4b** Feature-coverage moat | Product-led companies, feature-launch decisions | Light — needs feature matrix only | Lowest (Bool-only) |
+| **4c** Channel-economics resilience | Paid-acquisition-dependent companies | Heavy — needs CAC elasticity per channel | Medium (linear with sensitivity coefficients) |
+
+All three predicates share the same skolemization scaffold (item 0 imports, exactly-one move pick via `PbEq`, combo enumeration via `itertools.product`, per-move durability second pass on SAT, labeled kill-scenario extraction on UNSAT). The subsections below differ only in (a) the slot data, (b) the per-combo success-predicate body, and (c) the kill-scenario label encoding.
+
+### Predicate 4a — Market-share defensibility
+
+**Question it answers.** "If I make my move and lock in a market-share level, can any combination of competitor responses dislodge me below my floor?"
+
+**Variables required.**
+- `my_moves: List[str]` — candidate move IDs (the existential decision)
+- `my_share_after_move: List[float]` — projected share after each move (0..1)
+- `their_response_impact: List[List[float]]` — competitor × response signed share-shift (positive = they take share from me)
+- `floor_threshold: float` — minimum acceptable share
+
+**Predicate body.**
+
+```python
+my_share - total_impact >= floor_threshold
+# where my_share = Sum([If(move_vars[i], my_share_after_move[i], 0.0) for i in range(N_my_moves)])
+# where total_impact = sum(their_response_impact[k][combo[k]] for k in range(N_competitors))  # Python sum, combo fixed
+```
+
+**Critical scoping notes.**
+- Linear additive impact across competitors is an OK first-order approximation. Real markets have interaction effects (Comp A's price cut amplifies Comp B's), but those require non-linear coefficients — defer to E1.5.
+- Founder data lift is moderate: baseline share + a 3×5 (competitor × response) signed-impact matrix per competitor. Without a sensitivity range, the model is brittle — run ±20% sensitivity per §8d of the scoping doc.
+- Predicate is linear-in-Real. Don't mix Real with Int variables in the same constraint (see common pitfalls).
+
+**Sample template code.**
+
+```python
+# Item 0: imports + slot data
+from z3 import Solver, Bool, If, Sum, PbEq, sat, is_true
+from itertools import product
+from mcp_solver.z3 import export_solution
+
+my_moves = ["raise_price", "freemium", "no_change"]
+my_share_after_move = [0.32, 0.50, 0.30]
+their_response_impact = [
+    # Comp A: r0=aggressive cut (+0.08 against me), r1=match (+0.03), r2=no change (0)
+    [0.08, 0.03, 0.00],
+    # Comp B: r0=aggressive (+0.05), r1=match (+0.02), r2=no change (0)
+    [0.05, 0.02, 0.00],
+]
+floor_threshold = 0.25
+```
+
+```python
+# Item 1: decision vars + per-combo skolemized constraints
+N_my_moves = len(my_moves)
+N_competitors = len(their_response_impact)
+N_responses = len(their_response_impact[0])
+
+solver = Solver()
+solver.set(unsat_core=True)
+
+move_vars = [Bool(f"choose_{m}") for m in my_moves]
+solver.add(PbEq([(m, 1) for m in move_vars], 1))
+
+my_share = Sum([If(move_vars[i], my_share_after_move[i], 0.0)
+                for i in range(N_my_moves)])
+
+combos = list(product(range(N_responses), repeat=N_competitors))
+for combo_idx, combo in enumerate(combos):
+    total_impact = sum(their_response_impact[k][combo[k]]
+                       for k in range(N_competitors))
+    label = f"4a_combo_{combo_idx}_resp_{'_'.join(str(c) for c in combo)}_impact_{total_impact:.3f}"
+    solver.assert_and_track(my_share - total_impact >= floor_threshold, label)
+```
+
+```python
+# Item 2: solve + per-move durability second pass + export
+variables = {f"choose_{m}": move_vars[i] for i, m in enumerate(my_moves)}
+result = solver.check()
+
+if result == sat:
+    durable = []
+    kill = {}
+    for i, name in enumerate(my_moves):
+        s2 = Solver()
+        s2.set(unsat_core=True)
+        s2.add(move_vars[i])
+        s2.add(PbEq([(m, 1) for m in move_vars], 1))
+        for combo_idx, combo in enumerate(combos):
+            ti = sum(their_response_impact[k][combo[k]]
+                     for k in range(N_competitors))
+            s2.assert_and_track(my_share - ti >= floor_threshold, f"c{combo_idx}")
+        if s2.check() == sat:
+            durable.append(name)
+        else:
+            core = list(s2.unsat_core())
+            kill[name] = str(core[0]) if core else "no core"
+    export_solution({
+        "status": "sat", "winning_moves": durable,
+        "kill_scenarios": kill, "total_combos_checked": len(combos),
+    })
+else:
+    core = solver.unsat_core()
+    export_solution({
+        "status": "unsat", "winning_moves": [],
+        "kill_scenarios": {str(c): "blocking" for c in list(core)[:5]},
+        "total_combos_checked": len(combos),
+    })
+```
+
+**Output parsing.**
+- `status: "sat"` + non-empty `winning_moves` — at least one move defends share at `floor_threshold` against every realistic competitor counter. Rank by other criteria (revenue impact, brand positioning) outside the solver.
+- `status: "sat"` + empty `winning_moves` — solver found a model but no individual move was durable when pinned. Widen the move set or lower `floor_threshold`.
+- `status: "unsat"` — market is structurally indefensible at the chosen floor. The kill label `4a_combo_<idx>_resp_<r1>_<r2>_..._impact_<value>` names the exact response combination that breaks the floor and its total impact value.
+
+### Predicate 4b — Feature-coverage moat
+
+**Question it answers.** "After I ship feature set F, will my coverage of buyer-evaluated dimensions stay ≥ `lead_margin` ahead of every competitor's worst-case response?"
+
+**Variables required.**
 - `my_moves: List[str]` — candidate move IDs (the existential decision)
 - `my_baseline: List[int]` — 0/1 per dimension, the brand's current feature coverage
 - `my_move_deltas: List[List[int]]` — per-move 0/1 vector adding coverage (rows = moves, cols = dims)
@@ -668,7 +787,19 @@ Pre-check these in the command flow BEFORE building the model, and surface the g
 - `dim_weights: List[int]` — 1–10 typical, buyer importance per dimension
 - `lead_margin: int` — required weighted-score lead `my_score` must maintain over the worst-case competitor max
 
-**Template code (split across `add_item` calls — 4 items).**
+**Predicate body.**
+
+```python
+my_score >= their_max + lead_margin
+# where my_score = Σ_d (my_baseline OR (Σ_m move_var[m] * my_move_deltas[m][d])) * dim_weights[d]
+# where their_max = max over k of Σ_d (their_baseline[k][d] OR their_response_deltas[k][combo[k]][d]) * dim_weights[d]
+```
+
+**Critical scoping notes.**
+- This predicate assumes coverage is *additive* across dimensions. Real buying decisions are often *thresholded* (a 70% coverage product loses to a 100% coverage product even if the gap is small). For v1, stick with additive; flag the simplification to the founder.
+- Lowest data lift of the three — just a feature matrix and dim weights. Lowest SMT load (Bool-only). Recommended starting predicate per scoping doc §4.
+
+**Sample template code.**
 
 ```python
 # Item 0: imports + slot data
@@ -781,18 +912,6 @@ else:
     })
 ```
 
-**Calling sequence.**
-
-```
-clear_model
-→ add_item(0, ...item 0 with slots filled...)
-→ add_item(1, ...item 1 verbatim...)
-→ add_item(2, ...item 2 verbatim...)
-→ add_item(3, ...item 3 verbatim...)
-→ solve_model(timeout=10000)
-→ clear_model
-```
-
 **Per-move durability second pass.** After the initial SAT check returns *some* winning move, the template re-solves once per candidate move with that move pinned ON. This produces (a) the **full list** of durable moves, not just one solver pick, and (b) for every non-durable move, a 1-line kill scenario extracted from the first label in its unsat core. The kill label encodes the competitor responses that beat the move (`combo_<idx>_resp_<r1>_<r2>_..._their_max_<score>`), so the founder sees exactly which competitor counter-move closes the gap.
 
 **Output parsing.**
@@ -801,11 +920,159 @@ clear_model
 - `status: "unsat"` — no move dominates against the full counter-move space. The `kill_scenarios` dict names the first ~5 blocking combos from the unsat core. Treat as "this competitive frame is unwinnable at current `lead_margin` — relax the margin, expand `my_moves`, or accept parity."
 - `total_combos_checked` — sanity check the combo space size (`R^N_competitors`). If it exceeds ~3000, sample combos instead of enumerating (see pitfall 2).
 
+### Predicate 4c — Channel-economics resilience
+
+**Question it answers.** "If I invest $X/mo into channel C, will my blended CAC stay under `target_cac` across the worst-case counter-investment by competitors?"
+
+**Variables required.**
+- `my_moves: List[str]` — discrete channel-investment options (the existential decision)
+- `my_cac_after_move: List[float]` — my CAC under move i without competitor counter
+- `competitor_counter_impact: List[List[List[float]]]` — move × competitor × response signed CAC lift (positive = my CAC rises when I make move i AND competitor k plays response r)
+- `target_cac: float` — LTV-derived ceiling
+
+**Predicate body.** Note: impact is per-(move, competitor, response) — competitors can counter different moves differently (LinkedIn counter is cheap, content counter is hard).
+
+```python
+my_cac_for_combo <= target_cac
+# where my_cac_for_combo = Sum([If(move_vars[i],
+#                                  my_cac_after_move[i] + sum(competitor_counter_impact[i][k][combo[k]]
+#                                                              for k in range(N_competitors)),
+#                                  0.0)
+#                               for i in range(N_my_moves)])
+```
+
+**Critical scoping notes.**
+- Linear CAC elasticity is a heavy simplification. Real CAC curves are non-linear and channel-saturated. For v1, linear is acceptable; **document it loudly in the output narration** — the founder must know the result assumes linear response. If CAC curves are sharply non-linear in the founder's market (e.g. paid search auction dynamics), pre-compute the non-linear part in Python before encoding (per §8b of the scoping doc).
+- Heaviest data lift of the three: CAC elasticity per (move, competitor, response). Founders without this data should fall back to the scenario tree (§10 of the scoping doc).
+- Predicate is linear-in-Real. Same numeric-type discipline as 4a — don't mix Int and Real.
+
+**Sample template code.**
+
+```python
+# Item 0: imports + slot data
+from z3 import Solver, Bool, If, Sum, PbEq, sat, is_true
+from itertools import product
+from mcp_solver.z3 import export_solution
+
+my_moves = ["linkedin_30k", "content_30k", "no_invest"]
+my_cac_after_move = [80, 60, 100]   # content has lower base CAC
+competitor_counter_impact = [
+    # Move 0 (linkedin_30k) — competitors can counter-bid LinkedIn hard
+    [
+        [30, 20, 5],   # Comp A: r0=full counter, r1=partial, r2=no counter
+        [25, 15, 5],   # Comp B
+    ],
+    # Move 1 (content_30k) — competitors can't easily counter content compounding
+    [
+        [8, 5, 2],
+        [6, 4, 2],
+    ],
+    # Move 2 (no_invest) — small CAC drift regardless
+    [
+        [5, 3, 1],
+        [4, 2, 1],
+    ],
+]
+target_cac = 85
+```
+
+```python
+# Item 1: decision vars + per-combo skolemized constraints
+N_my_moves = len(my_moves)
+N_competitors = len(competitor_counter_impact[0])
+N_responses = len(competitor_counter_impact[0][0])
+
+solver = Solver()
+solver.set(unsat_core=True)
+
+move_vars = [Bool(f"choose_{m}") for m in my_moves]
+solver.add(PbEq([(m, 1) for m in move_vars], 1))
+
+combos = list(product(range(N_responses), repeat=N_competitors))
+
+for combo_idx, combo in enumerate(combos):
+    my_cac_for_combo = Sum([
+        If(move_vars[i],
+           my_cac_after_move[i] + sum(
+               competitor_counter_impact[i][k][combo[k]]
+               for k in range(N_competitors)),
+           0.0)
+        for i in range(N_my_moves)
+    ])
+    worst_lift = max(
+        sum(competitor_counter_impact[i][k][combo[k]] for k in range(N_competitors))
+        for i in range(N_my_moves)
+    )
+    label = f"4c_combo_{combo_idx}_resp_{'_'.join(str(c) for c in combo)}_worst_lift_{worst_lift:.2f}"
+    solver.assert_and_track(my_cac_for_combo <= target_cac, label)
+```
+
+```python
+# Item 2: solve + per-move durability second pass + export
+variables = {f"choose_{m}": move_vars[i] for i, m in enumerate(my_moves)}
+result = solver.check()
+
+if result == sat:
+    durable = []
+    kill = {}
+    for i, name in enumerate(my_moves):
+        s2 = Solver()
+        s2.set(unsat_core=True)
+        s2.add(move_vars[i])
+        s2.add(PbEq([(m, 1) for m in move_vars], 1))
+        for combo_idx, combo in enumerate(combos):
+            cac_combo = Sum([
+                If(move_vars[j],
+                   my_cac_after_move[j] + sum(
+                       competitor_counter_impact[j][k][combo[k]]
+                       for k in range(N_competitors)),
+                   0.0)
+                for j in range(N_my_moves)
+            ])
+            s2.assert_and_track(cac_combo <= target_cac, f"c{combo_idx}")
+        if s2.check() == sat:
+            durable.append(name)
+        else:
+            core = list(s2.unsat_core())
+            kill[name] = str(core[0]) if core else "no core"
+    export_solution({
+        "status": "sat", "winning_moves": durable,
+        "kill_scenarios": kill, "total_combos_checked": len(combos),
+    })
+else:
+    core = solver.unsat_core()
+    export_solution({
+        "status": "unsat", "winning_moves": [],
+        "kill_scenarios": {str(c): "blocking" for c in list(core)[:5]},
+        "total_combos_checked": len(combos),
+    })
+```
+
+**Output parsing.**
+- `status: "sat"` + non-empty `winning_moves` — at least one channel move keeps blended CAC under `target_cac` against every modeled counter-investment. The kill label `4c_combo_<idx>_resp_<r1>_<r2>_..._worst_lift_<value>` names the worst-case CAC lift for that combo.
+- `status: "sat"` + empty `winning_moves` — solver picked a move but no individual move was durable when pinned. Channel options are too narrow — broaden the move set or relax `target_cac`.
+- `status: "unsat"` — the market is structurally dominated for channel-economics-driven growth. Per scoping doc §7 scenario E1-3, this is the most strategically valuable output — a math-backed exit signal. Narrate as "consider exiting the channel or shifting to a channel where competitors cannot counter-spend (e.g. content, community, partnerships)."
+
+### Shared calling sequence (all three predicates)
+
+```
+clear_model
+→ add_item(0, ...slot data per predicate...)
+→ add_item(1, ...decision vars + skolemized constraints...)
+→ add_item(2, ...solve + durability pass + export...)   # for 4a/4c
+  OR
+→ add_item(2, ...combo enumeration + constraints...)    # for 4b (4-item structure)
+→ add_item(3, ...solve + durability pass + export...)   # for 4b only
+→ solve_model(timeout=10000)
+→ clear_model
+```
+
 **Common pitfalls.**
 - Encoding `ForAll(...)` instead of skolemizing. Loses unsat-core explainability — UNSAT then returns opaque "unsat" with no per-combo label, so the founder gets no "you lost because competitor X did Y" output. The whole point of this template is the named kill scenario; `ForAll` defeats it.
 - Combo space blow-up. The Cartesian product is `R^N_competitors` — at 4 competitors × 5 responses you have 625 combos (fine); at 6 × 6 you have 46,656 (slow but tractable); at 8 × 8 you have 16M (intractable). Cap at ~3000 combos. Beyond that, sample combos uniformly (e.g. 2000 random combos drawn without replacement) and document that the result is "robust against sampled counter-moves" rather than "robust against all counter-moves."
 - Non-linear predicates. Predicate 4b is linear-in-Bool (weighted sums of 0/1 covers) — fast. Predicates 4a/4c need linear-in-Real (market-share and channel-economics math). If you encode multiplication of two Z3 variables (e.g. `my_share * my_growth`), Z3's quantifier elimination degrades sharply. Pre-compute one side as a Python constant before constraint construction.
 - Forgetting `solver.set(unsat_core=True)` before any `assert_and_track`. Without it, the unsat core is empty even on UNSAT — the kill scenarios silently disappear and the template returns "unsat with no core." Always set this immediately after constructing the `Solver()`.
+- Mixing predicate variable types. 4b is Int-from-Bool (clean SMT load). 4a and 4c use Real arithmetic. Don't mix Int and Real in the same predicate — Z3 will silently promote everything to Real, but the unsat-core labels can become harder to interpret. Pick one numeric type per predicate.
 
 ---
 
