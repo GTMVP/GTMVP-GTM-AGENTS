@@ -1,0 +1,31 @@
+{
+  "description": "SAT multiple winners — 5 dims, uniform weight 5, 2 weak competitors with empty response deltas (cannot retaliate). All 3 my_moves are durable because every move uniquely covers a dim the competitors cannot ever reach.",
+  "integration": "war-game",
+  "template": "feature-coverage-moat",
+  "inputs": {
+    "scenario_name": "E1-2 SAT multiple winners",
+    "my_moves": ["move_A", "move_B", "move_C"],
+    "my_baseline": [1, 1, 0, 0, 0],
+    "my_move_deltas": [
+      [0, 0, 1, 0, 0],
+      [0, 0, 0, 1, 0],
+      [0, 0, 0, 0, 1]
+    ],
+    "their_baseline": [
+      [1, 0, 0, 0, 0],
+      [0, 1, 0, 0, 0]
+    ],
+    "their_response_deltas": [
+      [[0, 0, 0, 0, 0], [0, 0, 0, 0, 0], [0, 0, 0, 0, 0]],
+      [[0, 0, 0, 0, 0], [0, 0, 0, 0, 0], [0, 0, 0, 0, 0]]
+    ],
+    "dim_weights": [5, 5, 5, 5, 5],
+    "lead_margin": 2
+  },
+  "expected": {
+    "status": "sat",
+    "all_durable": ["move_A", "move_B", "move_C"],
+    "kill_count_expected": 0
+  },
+  "_solver_note": "Competitors have zero response capability (all response deltas are zeros). Any of my 3 moves opens a 2-dim lead margin against each competitor that they cannot close. All moves durable."
+}

@@ -1,0 +1,33 @@
+{
+  "description": "UNSAT — no durable move exists. 5 dims uniform weight 5, 3 strong competitors with response deltas that perfectly mirror my move deltas. For every move I might choose, at least one competitor has a response that ties or beats my lead, breaking the lead_margin=3 requirement. Solver must return UNSAT. Mirrors content-calendar-3 / channel-score-3 / swot-priorities-3 negative-test pattern.",
+  "integration": "war-game",
+  "template": "feature-coverage-moat",
+  "inputs": {
+    "scenario_name": "E1-3 UNSAT no winner",
+    "my_moves": ["move_X", "move_Y", "move_Z"],
+    "my_baseline": [1, 1, 0, 0, 0],
+    "my_move_deltas": [
+      [0, 0, 1, 0, 0],
+      [0, 0, 0, 1, 0],
+      [0, 0, 0, 0, 1]
+    ],
+    "their_baseline": [
+      [1, 1, 0, 0, 0],
+      [1, 1, 0, 0, 0],
+      [1, 1, 0, 0, 0]
+    ],
+    "their_response_deltas": [
+      [[0, 0, 1, 0, 0], [0, 0, 0, 1, 0], [0, 0, 0, 0, 1]],
+      [[0, 0, 1, 0, 0], [0, 0, 0, 1, 0], [0, 0, 0, 0, 1]],
+      [[0, 0, 1, 0, 0], [0, 0, 0, 1, 0], [0, 0, 0, 0, 1]]
+    ],
+    "dim_weights": [5, 5, 5, 5, 5],
+    "lead_margin": 3
+  },
+  "expected": {
+    "status": "unsat",
+    "all_durable": [],
+    "kill_count_expected": 3
+  },
+  "_unsat_note": "Each competitor can mirror ANY of my dim-additions. With lead_margin=3 (effectively requiring a clear lead since weights are 5), every potential move is matched dim-for-dim by at least one competitor response combo. The solver must surface this as UNSAT instead of returning a partial winner. Negative test mirrors content-calendar-3 pattern."
+}

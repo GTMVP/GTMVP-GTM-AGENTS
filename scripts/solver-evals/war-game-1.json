@@ -1,0 +1,34 @@
+{
+  "description": "SAT unique winner — 6 dims, weights [5,5,5,5,15,5]. Dim 4 (mobile) is architecturally locked: no competitor response can ever cover it. Only 'mobile' move covers dim 4 (the high-value dim). Therefore 'mobile' is the unique durable move; coaching/warehouse/no_op all get killed.",
+  "integration": "war-game",
+  "template": "feature-coverage-moat",
+  "inputs": {
+    "scenario_name": "E1-1 SAT unique winner",
+    "my_moves": ["coaching", "mobile", "warehouse", "no_op"],
+    "my_baseline": [1, 1, 1, 0, 0, 0],
+    "my_move_deltas": [
+      [0, 0, 0, 1, 0, 0],
+      [0, 0, 0, 0, 1, 0],
+      [0, 0, 0, 0, 0, 1],
+      [0, 0, 0, 0, 0, 0]
+    ],
+    "their_baseline": [
+      [1, 1, 1, 0, 0, 0],
+      [1, 1, 0, 0, 0, 0],
+      [1, 0, 1, 0, 0, 0]
+    ],
+    "their_response_deltas": [
+      [[0, 0, 0, 1, 0, 0], [0, 0, 0, 0, 0, 1], [0, 0, 0, 0, 0, 0]],
+      [[0, 0, 0, 1, 0, 0], [0, 0, 0, 0, 0, 1], [0, 0, 0, 0, 0, 0]],
+      [[0, 0, 0, 1, 0, 0], [0, 0, 0, 0, 0, 1], [0, 0, 0, 0, 0, 0]]
+    ],
+    "dim_weights": [5, 5, 5, 5, 15, 5],
+    "lead_margin": 3
+  },
+  "expected": {
+    "status": "sat",
+    "all_durable": ["mobile"],
+    "kill_count_expected": 3
+  },
+  "_solver_note": "Z3 with manual skolemization (Template 8). For each candidate move, build a separate Solver with that move forced and ALL competitor response combinations enumerated. SAT under all responses = durable. Unsat under any response = killed. Dim 4 weight=15 makes it the swing dim; only 'mobile' delta touches it; no competitor response delta touches it → 'mobile' wins the moat."
+}
