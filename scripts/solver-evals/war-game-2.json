@@ -2,6 +2,7 @@
   "description": "SAT multiple winners — 5 dims, uniform weight 5, 2 weak competitors with empty response deltas (cannot retaliate). All 3 my_moves are durable because every move uniquely covers a dim the competitors cannot ever reach.",
   "integration": "war-game",
   "template": "feature-coverage-moat",
+  "predicate": "4b",
   "inputs": {
     "scenario_name": "E1-2 SAT multiple winners",
     "my_moves": ["move_A", "move_B", "move_C"],

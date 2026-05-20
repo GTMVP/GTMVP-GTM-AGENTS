@@ -2,6 +2,7 @@
   "description": "UNSAT — no durable move exists. 5 dims uniform weight 5, 3 strong competitors with response deltas that perfectly mirror my move deltas. For every move I might choose, at least one competitor has a response that ties or beats my lead, breaking the lead_margin=3 requirement. Solver must return UNSAT. Mirrors content-calendar-3 / channel-score-3 / swot-priorities-3 negative-test pattern.",
   "integration": "war-game",
   "template": "feature-coverage-moat",
+  "predicate": "4b",
   "inputs": {
     "scenario_name": "E1-3 UNSAT no winner",
     "my_moves": ["move_X", "move_Y", "move_Z"],

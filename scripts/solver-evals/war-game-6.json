@@ -1,0 +1,31 @@
+{
+  "description": "Predicate 4c SAT — channel-economics resilience. Three channel-investment options (linkedin_30k, content_30k, no_invest) with different base CACs (80 / 60 / 100). Two competitors can each play 3 counter-response postures (full counter / partial / no counter). LinkedIn is easy for competitors to counter-bid (CAC lifts of 25-30 each); content compounds and is hard to counter (lifts of 4-8); no_invest drifts slightly (1-5). With target_cac=85 (LTV ceiling), only content_30k stays under 85 across all 9 combos worst-case (60 + 8 + 6 = 74). LinkedIn blows out (80 + 30 + 25 = 135); no_invest blows out under any meaningful counter (100 + anything > 85). Unique durable winner: content_30k.",
+  "integration": "war-game",
+  "template": "cac-ceiling",
+  "predicate": "4c",
+  "inputs": {
+    "scenario_name": "E1-6 4c SAT — content move survives",
+    "my_moves": ["linkedin_30k", "content_30k", "no_invest"],
+    "my_cac_after_move": [80, 60, 100],
+    "competitor_counter_impact": [
+      [
+        [30, 20, 5],
+        [25, 15, 5]
+      ],
+      [
+        [8, 5, 2],
+        [6, 4, 2]
+      ],
+      [
+        [5, 3, 1],
+        [4, 2, 1]
+      ]
+    ],
+    "target_cac": 85
+  },
+  "expected": {
+    "status": "sat",
+    "all_durable": ["content_30k"]
+  },
+  "_solver_note": "Manual skolemization over response combos (3 x 3 = 9). CAC inequality: my_cac_after_move[i] + sum(competitor_counter_impact[i][k][response_k]) <= target_cac, evaluated for the chosen move i. content_30k worst case: 60 + 8 + 6 = 74 <= 85. linkedin_30k worst case: 80 + 30 + 25 = 135 (kill). no_invest worst case: 100 + 5 + 4 = 109 (kill, and no_invest's base CAC alone exceeds the ceiling)."
+}

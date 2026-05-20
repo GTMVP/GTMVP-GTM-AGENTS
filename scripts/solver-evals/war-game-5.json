@@ -1,0 +1,21 @@
+{
+  "description": "Predicate 4a UNSAT — no move defensible. Same three pricing moves but competitor response impacts are uniformly heavy across all postures (0.08-0.20 range) and the floor_threshold is tightened to 0.35. Even freemium's projected 0.40 share gets crushed to ~0.02 under the worst combined impact. Solver must return UNSAT — there is no move that survives the competitive response. Mirrors the channel-score-3 / content-calendar-3 negative-test pattern.",
+  "integration": "war-game",
+  "template": "share-floor",
+  "predicate": "4a",
+  "inputs": {
+    "scenario_name": "E1-5 4a UNSAT — no move defensible",
+    "my_moves": ["raise_price", "freemium", "no_change"],
+    "my_share_after_move": [0.32, 0.40, 0.30],
+    "their_response_impact": [
+      [0.15, 0.20, 0.12],
+      [0.10, 0.18, 0.08]
+    ],
+    "floor_threshold": 0.35
+  },
+  "expected": {
+    "status": "unsat",
+    "all_durable": []
+  },
+  "_unsat_note": "Tight floor (0.35) plus heavy competitor responses (every posture in [0.08, 0.20]) make every move + response combo violate the inequality. UNSAT is the correct, expected output — the structure of the market provides no share-defensible move. Negative test mirrors content-calendar-3 / channel-score-3 / swot-priorities-3."
+}

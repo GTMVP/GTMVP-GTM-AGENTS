@@ -1,0 +1,31 @@
+{
+  "description": "Predicate 4c UNSAT — market structurally dominated. Three paid-channel options (linkedin_30k, google_30k, content_30k) with base CACs 80/75/70. Competitor counter-impact is heavy across the board (15-40 per competitor per response), so even content_30k's best case (70 + 15 + 12 = 97) exceeds target_cac=85. No move keeps CAC under the LTV ceiling. Solver must return UNSAT, surfacing that the market structure itself is the problem — not the channel choice. Mirrors channel-score-3 / content-calendar-3 negative-test pattern.",
+  "integration": "war-game",
+  "template": "cac-ceiling",
+  "predicate": "4c",
+  "inputs": {
+    "scenario_name": "E1-7 4c UNSAT — structurally dominated",
+    "my_moves": ["linkedin_30k", "google_30k", "content_30k"],
+    "my_cac_after_move": [80, 75, 70],
+    "competitor_counter_impact": [
+      [
+        [35, 30, 25],
+        [30, 28, 25]
+      ],
+      [
+        [40, 35, 30],
+        [35, 30, 28]
+      ],
+      [
+        [20, 18, 15],
+        [18, 15, 12]
+      ]
+    ],
+    "target_cac": 85
+  },
+  "expected": {
+    "status": "unsat",
+    "all_durable": []
+  },
+  "_unsat_note": "Even the best move (content_30k, base 70) lifts to at least 70 + 15 + 12 = 97 under the lightest competitor response combo — still over 85. LinkedIn and Google are far worse. Every (move, response_combo) pair violates the CAC ceiling, so the solver correctly reports UNSAT. Strategic implication: the market is structurally dominated; no paid-channel move survives. Negative test mirrors content-calendar-3 / channel-score-3."
+}

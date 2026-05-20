@@ -2,6 +2,7 @@
   "description": "SAT unique winner — 6 dims, weights [5,5,5,5,15,5]. Dim 4 (mobile) is architecturally locked: no competitor response can ever cover it. Only 'mobile' move covers dim 4 (the high-value dim). Therefore 'mobile' is the unique durable move; coaching/warehouse/no_op all get killed.",
   "integration": "war-game",
   "template": "feature-coverage-moat",
+  "predicate": "4b",
   "inputs": {
     "scenario_name": "E1-1 SAT unique winner",
     "my_moves": ["coaching", "mobile", "warehouse", "no_op"],
