@@ -1,6 +1,6 @@
 ---
 name: solver-patterns
-description: Reusable constraint-solver templates for GTMVP agents that produce provably-optimal recommendations. Seven templates — five Z3 (linear-allocation, knapsack, max-min-distance, set-cover, scheduling-with-deps) for solver-z3, one PySAT MaxSAT (maxsat-claim-synthesis) for solver-maxsat in /gtm-audit D1, and one MiniZinc assignment-with-diversity for solver-mzn in /content-calendar E2. Mandates labeling, fresh-model, timeout, UNSAT-explanation, and piecewise-linear conventions.
+description: Reusable constraint-solver templates for GTMVP agents that produce provably-optimal recommendations. Eight templates — five Z3 (linear-allocation, knapsack, max-min-distance, set-cover, scheduling-with-deps) for solver-z3, one PySAT MaxSAT (maxsat-claim-synthesis) for solver-maxsat in /gtm-audit D1, one MiniZinc assignment-with-diversity for solver-mzn in /content-calendar E2, and one Z3 quantifier-alternation (manual skolemization, predicate 4b feature-coverage moat) for solver-z3 in /war-game E1. Mandates labeling, fresh-model, timeout, UNSAT-explanation, and piecewise-linear conventions.
 ---
 
 # Solver Patterns
@@ -651,6 +651,164 @@ Pre-check these in the command flow BEFORE building the model, and surface the g
 
 ---
 
+## Template 8: Quantifier alternation via manual skolemization (E1 — `/war-game`)
+
+**Use cases.** E1 competitor war-gaming. Any "∃ my_moves ∀ their_responses : success_predicate(my_moves, their_responses)" problem — i.e. find a move I can make such that **for every** competitor counter-move, my position still wins. v1 ships with **predicate 4b — feature-coverage moat** (do I dominate a weighted feature-coverage score regardless of what they ship next?). The same template extends to predicate 4a (market-share defensibility) and 4c (channel-economics resilience) by swapping the per-combo scoring function — the skolemization scaffold stays identical.
+
+**Solver.** `mcp__solver-z3__*` (NOT solver-maxsat, NOT solver-mzn). Z3's ground SAT path is used **after** manual skolemization — the universal quantifier is enumerated in Python over the Cartesian product of competitor responses, NOT encoded via `Z3.ForAll`. This is the §8c mitigation from the E1 scoping doc: it preserves full unsat-core explainability that Z3's native quantifier handling cannot give.
+
+**Why manual skolemization over `ForAll`.** Native Z3 `ForAll` has limited unsat-core support and can hang on non-trivial formulas. Enumerating combos in Python and asserting them one-at-a-time via `assert_and_track(..., label)` recovers explainability (each combo becomes a labeled constraint, so UNSAT cores name the exact kill scenario), keeps the solver on its fast ground-SAT path, and makes "why didn't this move work?" answerable in plain English. Trade-off: combos blow up as `R^N_competitors`. v1 caps at 3–5 competitors × 3–5 responses each (max ~3125 combos — well within solver headroom).
+
+**Slots to fill.**
+- `my_moves: List[str]` — candidate move IDs (the existential decision)
+- `my_baseline: List[int]` — 0/1 per dimension, the brand's current feature coverage
+- `my_move_deltas: List[List[int]]` — per-move 0/1 vector adding coverage (rows = moves, cols = dims)
+- `their_baseline: List[List[int]]` — per-competitor 0/1 coverage vector
+- `their_response_deltas: List[List[List[int]]]` — competitor × response × dimension 0/1 deltas
+- `dim_weights: List[int]` — 1–10 typical, buyer importance per dimension
+- `lead_margin: int` — required weighted-score lead `my_score` must maintain over the worst-case competitor max
+
+**Template code (split across `add_item` calls — 4 items).**
+
+```python
+# Item 0: imports + slot data
+from z3 import Solver, Bool, If, Sum, PbEq, sat, is_true
+from itertools import product
+from mcp_solver.z3 import export_solution
+
+my_moves = ["coaching", "mobile", "warehouse", "no_op"]
+my_baseline = [1, 1, 1, 0, 0, 0]
+my_move_deltas = [
+    [0, 0, 0, 1, 0, 0],   # coaching: +dim 3
+    [0, 0, 0, 0, 1, 0],   # mobile:   +dim 4 (architecturally locked, high weight)
+    [0, 0, 0, 0, 0, 1],   # warehouse:+dim 5
+    [0, 0, 0, 0, 0, 0],   # no_op:    nothing
+]
+their_baseline = [
+    [1, 1, 1, 0, 0, 0],   # Comp A
+    [1, 1, 0, 0, 0, 0],   # Comp B
+    [1, 0, 1, 0, 0, 0],   # Comp C
+]
+their_response_deltas = [
+    [[0, 0, 0, 1, 0, 0], [0, 0, 0, 0, 0, 1], [0, 0, 0, 0, 0, 0]],
+    [[0, 0, 0, 1, 0, 0], [0, 0, 0, 0, 0, 1], [0, 0, 0, 0, 0, 0]],
+    [[0, 0, 0, 1, 0, 0], [0, 0, 0, 0, 0, 1], [0, 0, 0, 0, 0, 0]],
+]
+dim_weights = [5, 5, 5, 5, 15, 5]
+lead_margin = 3
+```
+
+```python
+# Item 1: decision vars + my_score expression
+N_my_moves = len(my_moves)
+N_dims = len(dim_weights)
+N_competitors = len(their_baseline)
+N_responses = len(their_response_deltas[0])
+
+solver = Solver()
+solver.set(unsat_core=True)
+
+move_vars = [Bool(f"choose_{m}") for m in my_moves]
+solver.add(PbEq([(m, 1) for m in move_vars], 1))   # pick exactly one move
+
+score = 0
+for d in range(N_dims):
+    if my_baseline[d] == 1:
+        score = score + dim_weights[d]
+    else:
+        covered = Sum([If(move_vars[m], my_move_deltas[m][d], 0)
+                       for m in range(N_my_moves)])
+        score = score + dim_weights[d] * covered
+my_score = score
+```
+
+```python
+# Item 2: combo enumeration + per-combo labeled constraints (the skolemization)
+combos = list(product(range(N_responses), repeat=N_competitors))
+
+for combo_idx, combo in enumerate(combos):
+    their_scores = []
+    for k in range(N_competitors):
+        cov = [1 if (their_baseline[k][d] == 1 or
+                     their_response_deltas[k][combo[k]][d] == 1) else 0
+               for d in range(N_dims)]
+        their_scores.append(sum(dim_weights[d] * cov[d] for d in range(N_dims)))
+    their_max = max(their_scores)
+
+    label = f"combo_{combo_idx}_resp_{'_'.join(str(c) for c in combo)}_their_max_{their_max}"
+    solver.assert_and_track(my_score >= their_max + lead_margin, label)
+```
+
+```python
+# Item 3: solve + per-move durability second pass + export
+variables = {f"choose_{m}": move_vars[i] for i, m in enumerate(my_moves)}
+result = solver.check()
+
+if result == sat:
+    durable = []
+    kill = {}
+    for i, name in enumerate(my_moves):
+        s2 = Solver()
+        s2.set(unsat_core=True)
+        s2.add(move_vars[i])
+        s2.add(PbEq([(m, 1) for m in move_vars], 1))
+        for combo_idx, combo in enumerate(combos):
+            their_max = max(
+                sum(dim_weights[d] * (1 if (their_baseline[k][d] == 1 or
+                                            their_response_deltas[k][combo[k]][d] == 1) else 0)
+                    for d in range(N_dims))
+                for k in range(N_competitors)
+            )
+            s2.assert_and_track(my_score >= their_max + lead_margin, f"c{combo_idx}")
+        if s2.check() == sat:
+            durable.append(name)
+        else:
+            core = list(s2.unsat_core())
+            kill[name] = str(core[0]) if core else "no core"
+    export_solution({
+        "status": "sat",
+        "winning_moves": durable,
+        "kill_scenarios": kill,
+        "total_combos_checked": len(combos),
+    })
+else:
+    core = solver.unsat_core()
+    export_solution({
+        "status": "unsat",
+        "winning_moves": [],
+        "kill_scenarios": {str(c): "blocking" for c in list(core)[:5]},
+        "total_combos_checked": len(combos),
+    })
+```
+
+**Calling sequence.**
+
+```
+clear_model
+→ add_item(0, ...item 0 with slots filled...)
+→ add_item(1, ...item 1 verbatim...)
+→ add_item(2, ...item 2 verbatim...)
+→ add_item(3, ...item 3 verbatim...)
+→ solve_model(timeout=10000)
+→ clear_model
+```
+
+**Per-move durability second pass.** After the initial SAT check returns *some* winning move, the template re-solves once per candidate move with that move pinned ON. This produces (a) the **full list** of durable moves, not just one solver pick, and (b) for every non-durable move, a 1-line kill scenario extracted from the first label in its unsat core. The kill label encodes the competitor responses that beat the move (`combo_<idx>_resp_<r1>_<r2>_..._their_max_<score>`), so the founder sees exactly which competitor counter-move closes the gap.
+
+**Output parsing.**
+- `status: "sat"` + non-empty `winning_moves` — at least one move survives every competitor counter-move within `lead_margin`. Present `winning_moves` as the durable list; rank by other criteria (cost, strategic fit) outside the solver.
+- `status: "sat"` + empty `winning_moves` — solver found a model only because the existential pick wasn't pinned during the durability pass. Surface `kill_scenarios` to the founder; widen the move set or relax `lead_margin`.
+- `status: "unsat"` — no move dominates against the full counter-move space. The `kill_scenarios` dict names the first ~5 blocking combos from the unsat core. Treat as "this competitive frame is unwinnable at current `lead_margin` — relax the margin, expand `my_moves`, or accept parity."
+- `total_combos_checked` — sanity check the combo space size (`R^N_competitors`). If it exceeds ~3000, sample combos instead of enumerating (see pitfall 2).
+
+**Common pitfalls.**
+- Encoding `ForAll(...)` instead of skolemizing. Loses unsat-core explainability — UNSAT then returns opaque "unsat" with no per-combo label, so the founder gets no "you lost because competitor X did Y" output. The whole point of this template is the named kill scenario; `ForAll` defeats it.
+- Combo space blow-up. The Cartesian product is `R^N_competitors` — at 4 competitors × 5 responses you have 625 combos (fine); at 6 × 6 you have 46,656 (slow but tractable); at 8 × 8 you have 16M (intractable). Cap at ~3000 combos. Beyond that, sample combos uniformly (e.g. 2000 random combos drawn without replacement) and document that the result is "robust against sampled counter-moves" rather than "robust against all counter-moves."
+- Non-linear predicates. Predicate 4b is linear-in-Bool (weighted sums of 0/1 covers) — fast. Predicates 4a/4c need linear-in-Real (market-share and channel-economics math). If you encode multiplication of two Z3 variables (e.g. `my_share * my_growth`), Z3's quantifier elimination degrades sharply. Pre-compute one side as a Python constant before constraint construction.
+- Forgetting `solver.set(unsat_core=True)` before any `assert_and_track`. Without it, the unsat core is empty even on UNSAT — the kill scenarios silently disappear and the template returns "unsat with no core." Always set this immediately after constructing the `Solver()`.
+
+---
+
 ## Cross-skill references
 
 - See `gtm-output-schemas` §8 (Solver Conventions) for the runtime conventions every command must follow when invoking the solver.
@@ -661,6 +819,7 @@ Pre-check these in the command flow BEFORE building the model, and surface the g
 - See `tam-sam-som-horizons` (Phase C2) for scheduling-with-deps.
 - See `/gtm-audit` (Phase D1) for the maxsat-claim-synthesis template wired into the synthesis stage. Uses `solver-maxsat` MCP server, not `solver-z3`.
 - See `/content-calendar` (Phase E2) for the assignment-with-diversity template wired into multi-platform editorial planning. Uses `solver-mzn` MCP server, not `solver-z3`.
+- See `/war-game` (Phase E1) for the quantifier-alternation template wired into competitor war-gaming. Uses `solver-z3` MCP server with manual skolemization of the universal quantifier.
 
 ## Versioning
 

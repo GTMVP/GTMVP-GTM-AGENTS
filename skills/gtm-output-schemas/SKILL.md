@@ -889,8 +889,9 @@ Multiple commands invoke constraint solvers via three MCP servers — each picke
 - **`solver-z3`** — `/channel-score`, `/positioning-pass`, `/competitor-map`, `swot-analysis`, `porters-five-forces`, `tam-sam-som-horizons`. Mixed Bool/Int/Real, optimization with piecewise-linear objectives, set-cover, scheduling.
 - **`solver-maxsat`** — `/gtm-audit` Phase D1 synthesis. PySAT RC2 for max-weight consistent subset selection across atomic agent claims.
 - **`solver-mzn`** — `/content-calendar` Phase E2. MiniZinc for assignment + diversity + global cardinality problems where Z3 would be 10–100× slower.
+- **`solver-z3` (quantifier-alternation, predicate 4b)** — `/war-game` Phase E1. Z3 with manual skolemization of the universal quantifier over enumerated competitor responses — proves a strategic move is durable against worst-case competitor response, or identifies the kill scenario when no move is durable.
 
-Every solver-using agent MUST follow the conventions below. Detailed templates live in the `solver-patterns` skill (seven templates total — five Z3, one PySAT, one MiniZinc) — this section codifies the runtime rules that span all three solvers.
+Every solver-using agent MUST follow the conventions below. Detailed templates live in the `solver-patterns` skill (eight templates total — five Z3 ground, one PySAT, one MiniZinc, one Z3 quantifier-alternation) — this section codifies the runtime rules that span all three solvers.
 
 ### 9.1 Fresh-model pattern
 
@@ -969,7 +970,7 @@ interface SolverResult {
   unsatCore?: string[];                            // labels that conflict; present when status is 'infeasible'
   relaxationSuggestions?: string[];                // English prose suggestions; present when 'infeasible' or 'timeout'
   solveTimeMs: number;
-  templateUsed: 'linear-allocation' | 'knapsack' | 'max-min-distance' | 'set-cover' | 'scheduling-with-deps' | 'maxsat-claim-synthesis' | 'assignment-with-diversity';
+  templateUsed: 'linear-allocation' | 'knapsack' | 'max-min-distance' | 'set-cover' | 'scheduling-with-deps' | 'maxsat-claim-synthesis' | 'assignment-with-diversity' | 'quantifier-alternation';
 }
 ```
 
