@@ -6,3 +6,7 @@ node_modules/
 .vscode/
 .idea/
 scripts/_tmp/
+__pycache__/
+*.pyc
+tests/sample-synthesis.pdf
+tests/*-rendered.pdf

@@ -1,0 +1,12 @@
+{
+  "name": "gtmvp-report-bundler",
+  "version": "1.0.0",
+  "type": "module",
+  "private": true,
+  "dependencies": {
+    "md-to-pdf": "^5.2.4"
+  },
+  "scripts": {
+    "test": "node bundle.mjs ../../tests/sample-synthesis.md"
+  }
+}
