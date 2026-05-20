@@ -884,7 +884,13 @@ The `data/channel-taxonomy.json` file in this plugin defines 28 micro-channels. 
 
 ## 8. Solver Conventions
 
-Several agents (`/channel-score`, `/positioning-pass`, `/competitor-map`, `swot-analysis`, `porters-five-forces`, `tam-sam-som-horizons`) invoke the `solver-z3` MCP server for provably-optimal recommendations under explicit constraints. Every solver-using agent MUST follow these conventions. Detailed Python z3 templates live in the `solver-patterns` skill — this section codifies the runtime rules.
+Multiple commands invoke constraint solvers via three MCP servers — each picked for the problem shape:
+
+- **`solver-z3`** — `/channel-score`, `/positioning-pass`, `/competitor-map`, `swot-analysis`, `porters-five-forces`, `tam-sam-som-horizons`. Mixed Bool/Int/Real, optimization with piecewise-linear objectives, set-cover, scheduling.
+- **`solver-maxsat`** — `/gtm-audit` Phase D1 synthesis. PySAT RC2 for max-weight consistent subset selection across atomic agent claims.
+- **`solver-mzn`** — `/content-calendar` Phase E2. MiniZinc for assignment + diversity + global cardinality problems where Z3 would be 10–100× slower.
+
+Every solver-using agent MUST follow the conventions below. Detailed templates live in the `solver-patterns` skill (seven templates total — five Z3, one PySAT, one MiniZinc) — this section codifies the runtime rules that span all three solvers.
 
 ### 9.1 Fresh-model pattern
 
@@ -963,7 +969,7 @@ interface SolverResult {
   unsatCore?: string[];                            // labels that conflict; present when status is 'infeasible'
   relaxationSuggestions?: string[];                // English prose suggestions; present when 'infeasible' or 'timeout'
   solveTimeMs: number;
-  templateUsed: 'linear-allocation' | 'knapsack' | 'max-min-distance' | 'set-cover' | 'scheduling-with-deps';
+  templateUsed: 'linear-allocation' | 'knapsack' | 'max-min-distance' | 'set-cover' | 'scheduling-with-deps' | 'maxsat-claim-synthesis' | 'assignment-with-diversity';
 }
 ```
 

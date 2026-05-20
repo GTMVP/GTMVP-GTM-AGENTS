@@ -1,6 +1,6 @@
 ---
 name: solver-patterns
-description: Reusable constraint-solver templates for GTMVP agents that produce provably-optimal recommendations. Six templates — five Z3 (linear-allocation, knapsack, max-min-distance, set-cover, scheduling-with-deps) for solver-z3, plus one PySAT MaxSAT template (maxsat-claim-synthesis) for solver-maxsat used in /gtm-audit D1. Mandates labeling, fresh-model, timeout, UNSAT-explanation, and piecewise-linear conventions.
+description: Reusable constraint-solver templates for GTMVP agents that produce provably-optimal recommendations. Seven templates — five Z3 (linear-allocation, knapsack, max-min-distance, set-cover, scheduling-with-deps) for solver-z3, one PySAT MaxSAT (maxsat-claim-synthesis) for solver-maxsat in /gtm-audit D1, and one MiniZinc assignment-with-diversity for solver-mzn in /content-calendar E2. Mandates labeling, fresh-model, timeout, UNSAT-explanation, and piecewise-linear conventions.
 ---
 
 # Solver Patterns
@@ -499,6 +499,158 @@ Scan every stage's `recommendations[]` array. Accept a claim into the MaxSAT inp
 - **Calling `solver.add(...)` on constraints that can drive UNSAT.** Use `solver.assert_and_track(constraint, "label")` so the unsat core has a human-readable explanation.
 - **Forgetting `opt.set("timeout", 10000)`.** Hard scheduling/cover problems can hang for minutes. Always set a timeout. Treat timeout as functional infeasibility — surface as "constraints too tight, suggest relaxing: [active hard constraints]."
 
+## Template 7: Assignment with diversity (E2 — `/content-calendar`)
+
+**Use cases.** E2 content calendar planning. Any "assign K options to D × P slots with per-slot fit, per-window diversity, per-option min/max coverage, and a weighted objective" problem. Generalizes to staffing rosters, ad-creative rotation, and any timetabling variant where global cardinality + diversity constraints dominate.
+
+**Solver.** `mcp__solver-mzn__*` tools (MiniZinc). Register `solver-mzn` → `mcp-solver-mzn.exe` in `~/.claude.json` before invoking. Requires `minizinc` Python bindings + the MiniZinc binary on PATH (see `reference_minizinc.md` in user memory). MiniZinc is the right tool here because `all_different`, global cardinality, and pairwise-different-within-window are first-class — encoding them in z3 would be quadratic in clauses and 10–100× slower.
+
+**Why MiniZinc, not Z3.** Z3 handles mixed Bool/Int/Real well but suffers on combinatorial assignment problems. MiniZinc's global constraints (`all_different`, `count`, `cumulative`) compile to specialized propagators in the underlying CP solver (Gecode, Chuffed). For D=14, P=7, K=5, the MiniZinc model solves in seconds; the same encoded as raw z3 bool clauses takes minutes.
+
+**Slots to fill.**
+- `D` — calendar length in days (typical 7, 14, 28)
+- `P` — number of distribution platforms
+- `K` — number of content pillars
+- `platform_names[p]` — labels (string array, MiniZinc identifier-safe)
+- `pillar_names[k]` — labels (string array, MiniZinc identifier-safe)
+- `cadence[p]` — exact number of posts on platform p across the D days
+- `pillar_fit[0..K, 1..P]` — 0/1 matrix; row 0 is the **no-post sentinel** (all 1s); rows 1..K are real pillar/platform fit
+- `pillar_min[k]` — minimum total appearances of pillar k across the whole calendar
+- `pillar_max[k]` — maximum total appearances
+- `min_gap[p]` — minimum days between same-pillar posts on platform p
+- `pillar_weight[k]` — 1–10 importance score; higher = preferentially scheduled
+
+**Template code (split across `add_item` calls — 4 items).**
+
+```minizinc
+% Item 0: includes, sizes, and brand-slot data
+include "globals.mzn";
+
+int: D = 14;
+int: P = 7;
+int: K = 5;
+
+array[1..P] of string: platform_names = ["LinkedIn", "X", "Instagram", "YouTube", "TikTok", "Email", "Blog"];
+array[1..K] of string: pillar_names = ["pillar_1", "pillar_2", "pillar_3", "pillar_4", "pillar_5"];
+
+array[1..P] of int: cadence = [4, 7, 3, 1, 2, 2, 1];
+
+% pillar_fit indexed 0..K x 1..P; row 0 is the no-post sentinel (all 1s)
+% Rows 1..K are the real pillar-platform fit values.
+array[0..K, 1..P] of 0..1: pillar_fit = array2d(0..K, 1..P, [
+    1, 1, 1, 1, 1, 1, 1,    % row 0: sentinel
+    1, 1, 1, 1, 1, 1, 1,    % pillar 1
+    1, 1, 0, 0, 1, 1, 1,    % pillar 2
+    1, 1, 1, 1, 1, 0, 1,    % pillar 3
+    1, 1, 1, 0, 0, 1, 1,    % pillar 4
+    0, 0, 1, 1, 1, 0, 0     % pillar 5
+]);
+
+array[1..K] of int: pillar_min    = [2, 1, 2, 1, 1];
+array[1..K] of int: pillar_max    = [6, 4, 5, 4, 3];
+array[1..P] of int: min_gap       = [3, 2, 3, 7, 3, 5, 7];
+array[1..K] of int: pillar_weight = [5, 4, 3, 2, 1];
+```
+
+```minizinc
+% Item 1: decision variables
+% x[d,p] = 0 means no post on (day d, platform p). 1..K = assigned pillar id.
+array[1..D, 1..P] of var 0..K: x;
+```
+
+```minizinc
+% Item 2: all constraints
+% Cadence: exactly cadence[p] non-zero entries per platform column
+constraint forall(p in 1..P)(
+    sum(d in 1..D)(bool2int(x[d,p] != 0)) = cadence[p]
+);
+
+% Fit: row 0 of pillar_fit is all 1s (sentinel), so this auto-allows x[d,p] = 0.
+% For x[d,p] = k > 0, requires pillar_fit[k,p] = 1.
+constraint forall(d in 1..D, p in 1..P)(
+    pillar_fit[x[d,p], p] = 1
+);
+
+% Diversity: no same non-zero pillar within (min_gap[p]-1) days on the same platform.
+% Window is d1+1..d1+min_gap[p]-1 — meaning two same-pillar posts must be at least
+% min_gap[p] days apart.
+constraint forall(p in 1..P, d1 in 1..D-1, d2 in d1+1..min(D, d1+min_gap[p]-1))(
+    x[d1,p] = 0 \/ x[d2,p] = 0 \/ x[d1,p] != x[d2,p]
+);
+
+% Pillar coverage bounds: each pillar appears between pillar_min[k] and pillar_max[k] times
+constraint forall(k in 1..K)(
+    pillar_min[k] <= sum(d in 1..D, p in 1..P)(bool2int(x[d,p] = k))
+);
+constraint forall(k in 1..K)(
+    sum(d in 1..D, p in 1..P)(bool2int(x[d,p] = k)) <= pillar_max[k]
+);
+```
+
+```minizinc
+% Item 3: objective + output
+solve maximize sum(d in 1..D, p in 1..P, k in 1..K)(
+    bool2int(x[d,p] = k) * pillar_weight[k]
+);
+
+% Output is CSV-shaped for easy parsing by the command flow.
+% One line per non-zero slot: "day,platform,pillar"
+output [
+    show(d) ++ "," ++ platform_names[p] ++ "," ++
+    (if fix(x[d,p]) = 0 then "-" else pillar_names[fix(x[d,p])] endif) ++ "\n"
+    | d in 1..D, p in 1..P where fix(x[d,p]) != 0
+];
+```
+
+**Calling sequence.**
+
+```
+clear_model
+→ add_item(0, ...item 0 above with brand slots filled...)
+→ add_item(1, ...item 1 verbatim...)
+→ add_item(2, ...item 2 verbatim...)
+→ add_item(3, ...item 3 verbatim...)
+→ solve_model(timeout=30)
+→ clear_model
+```
+
+**Solve output shape.**
+
+```json
+{
+  "status": "error",
+  "satisfiable": true,
+  "solution": {
+    "objective": 70,
+    "x": [[0,1,0,0,0,0,0], [0,0,0,0,0,0,0], ...14 rows of 7 ints...]
+  },
+  "objective": 70,
+  "optimal": false,
+  "success": true
+}
+```
+
+**Output parsing rules.**
+- `success: true` AND `satisfiable: true` = the schedule is usable. Read `solution.x` as a 14×7 matrix.
+- `status: 'error'` alongside `success: true` is a known solver-mzn quirk — **ignore the `status` field, trust `success` + `satisfiable`**. The solver returns this when satisficing (a feasible solution found) but not proven optimal within the timeout.
+- `optimal: true` means proven-optimal. `optimal: false` means satisficing (best found so far). For calendar planning, satisficing within 30s is normally acceptable; rerun with longer timeout if the founder wants proven-optimal.
+- Iterate `x[d-1][p-1]`: value 0 = no post; value k ∈ 1..K = the assigned pillar index. Map back to `pillar_names[k]` and `platform_names[p]` for human-readable output.
+
+**Infeasibility diagnosis.** If `satisfiable: false`, the founder's constraints can't all be met. The two most common causes:
+1. `sum(cadence) < sum(pillar_min)` — too few posts to hit the minimum-pillar floor. Raise cadence or lower pillar_min.
+2. `pillar_fit` is too restrictive — a pillar has fit=1 on only one platform whose cadence is below `pillar_min` for that pillar. Loosen fit or raise that platform's cadence.
+
+Pre-check these in the command flow BEFORE building the model, and surface the gap to the founder.
+
+**Common pitfalls.**
+- Forgetting the **sentinel row** in `pillar_fit` at index 0. Without it, the indexing-by-variable `pillar_fit[x[d,p], p]` triggers an out-of-bounds error when x[d,p]=0. The row-0-all-1s pattern lets the same constraint handle both "no post" and "real fit check" uniformly.
+- Misreading the diversity window. `d2 in d1+1..d1+min_gap[p]-1` means "min_gap days between posts" — if `min_gap[p] = 3`, two same-pillar posts cannot be on consecutive days or 2 days apart, but 3+ days is fine. Off-by-one here either over- or under-constrains the schedule by a factor of 2.
+- Using a 5-second timeout. The 14×7×6 search space is non-trivial; default to 30s for the assignment template, 60s for D=28. The MiniZinc solver also has a 30s max per the MCP server contract.
+- Quoting pillar/platform names with characters MiniZinc rejects as string literals (apostrophes, accented characters). Pre-sanitize to ASCII identifier-safe strings; the original brand-facing names live in the agent's prose, not in the model.
+- Forgetting `clear_model` at start and end. MiniZinc parses items in order; a stale parameter declaration from a prior run silently shadows the new one.
+
+---
+
 ## Cross-skill references
 
 - See `gtm-output-schemas` §8 (Solver Conventions) for the runtime conventions every command must follow when invoking the solver.
@@ -508,6 +660,7 @@ Scan every stage's `recommendations[]` array. Accept a claim into the MaxSAT inp
 - See `porters-five-forces` (Phase C1) for the set-cover variant on response packaging.
 - See `tam-sam-som-horizons` (Phase C2) for scheduling-with-deps.
 - See `/gtm-audit` (Phase D1) for the maxsat-claim-synthesis template wired into the synthesis stage. Uses `solver-maxsat` MCP server, not `solver-z3`.
+- See `/content-calendar` (Phase E2) for the assignment-with-diversity template wired into multi-platform editorial planning. Uses `solver-mzn` MCP server, not `solver-z3`.
 
 ## Versioning
 
